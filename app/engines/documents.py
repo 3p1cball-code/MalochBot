@@ -269,6 +269,14 @@ def text_to_pdf(text: str, path, photo: str = "") -> bool:
     top_y = top
     if photo and os.path.exists(photo):
         try:
+            from PIL import Image, ImageOps
+            pim = ImageOps.exif_transpose(Image.open(photo))
+            norm = str(config.GENERATED_DIR / "_photo_norm.png")
+            pim.convert("RGB").save(norm)
+            photo = norm
+        except Exception:
+            pass
+        try:
             pdf.image(photo, x=210 - right - 33, y=top, w=33)
             top_y = top + 44
         except Exception:

@@ -340,8 +340,8 @@ def documents_crop_apply(doc_id: int, x: int = Form(...), y: int = Form(...),
     if ext.lower() not in IMAGE_EXT or not os.path.exists(path):
         return RedirectResponse("/documents", status_code=303)
     try:
-        from PIL import Image
-        img = Image.open(path)
+        from PIL import Image, ImageOps
+        img = ImageOps.exif_transpose(Image.open(path))
         left, top = max(0, x), max(0, y)
         right = min(img.width, x + w)
         bottom = min(img.height, y + h)
