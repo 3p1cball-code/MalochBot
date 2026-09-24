@@ -58,7 +58,10 @@ Regeln:
 - Nur zuordnen, wenn Firma/Absender/Empfaenger/Kontext eindeutig passen.
 
 Antworte AUSSCHLIESSLICH mit JSON:
-{"jobs":[{"id":1,"phase":"...","bestaetigung":"ja","antwort_am":"YYYY-MM-DD","absender":"...","betreff":"...","status_text":"...","confidence":"hoch"}]}
+{"jobs":[{"id":1,"phase":"...","bestaetigung":"ja","antwort_am":"YYYY-MM-DD","absender":"...","betreff":"...","status_text":"...","confidence":"hoch","mail_ids":[1,4]}]}
+
+"mail_ids" = die ids (aus "mails") der Nachrichten, die diesen Job belegen. Newsletter,
+Job-Alerts und Aehnliches gehoeren NICHT dazu.
 """
 
 
@@ -185,25 +188,23 @@ def _scan(client, jobs=None):
 
 
 def _store_emails(mails, jobs, run_id):
-    tokens = {job["id"]: _tokens([job]) for job in jobs}
-    stored = 0
-    for mail in mails:
-        blob = _norm(mail["from"] + " " + mail.get("to", "") + " " + mail["subject"])
-        job_id = None
-        for jid, toks in tokens.items():
-            if any(re.search(r"\b%s\b" % re.escape(t), blob) for t in toks):
-                job_id = jid
-                break
+    """Speichert alle Mails; die Zuordnung zu Jobs macht das LLM (siehe run_tracking)."""
+    mapping = {}
+    for i, mail in enumerate(mails):
         try:
             db.execute(
                 "INSERT OR IGNORE INTO emails(date,folder,from_addr,subject,body,job_id,run_id,"
                 "created_at) VALUES(?,?,?,?,?,?,?,?)",
                 (mail["date"], mail["folder"], mail["from"], mail["subject"],
-                 mail["body"], job_id, run_id, db.now_iso()))
-            stored += 1
+                 mail["body"], None, run_id, db.now_iso()))
+            row = db.one(
+                "SELECT id FROM emails WHERE date=? AND folder=? AND from_addr=? AND subject=?",
+                (mail["date"], mail["folder"], mail["from"], mail["subject"]))
+            if row:
+                mapping[i] = row["id"]
         except Exception:
             pass
-    return stored
+    return mapping
 
 
 def run_tracking(run_id: int, model: str = "") -> dict:
@@ -221,12 +222,15 @@ def run_tracking(run_id: int, model: str = "") -> dict:
         except Exception:
             pass
     logbus.log(run_id, "info", "%d Mails gelesen (Ein-/Ausgang)." % len(mails))
-    _store_emails(mails, jobs, run_id)
+    for i, m in enumerate(mails):
+        m["id"] = i
+    mail_rows = _store_emails(mails, jobs, run_id)
 
     import json
     BATCH = 100
     batches = [mails[i:i + BATCH] for i in range(0, len(mails), BATCH)]
     merged = {}
+    job_mails = {}
     for idx, batch in enumerate(batches, 1):
         context_path = config.DATA_DIR / ("context_%d.json" % idx)
         context_path.write_text(
@@ -241,11 +245,23 @@ def run_tracking(run_id: int, model: str = "") -> dict:
             jid = item.get("id")
             if not isinstance(jid, int):
                 continue
+            for mid in item.get("mail_ids", []) or []:
+                if isinstance(mid, int):
+                    job_mails.setdefault(jid, set()).add(mid)
             cur = merged.get(jid)
             if cur is None or (item.get("antwort_am") or "") >= (cur.get("antwort_am") or ""):
                 merged[jid] = item
     if not merged:
         raise RuntimeError("Keine auswertbare JSON-Antwort vom Modell erhalten.")
+
+    linked = 0
+    for jid, mids in job_mails.items():
+        for mid in mids:
+            eid = mail_rows.get(mid)
+            if eid:
+                db.execute("UPDATE emails SET job_id=? WHERE id=?", (jid, eid))
+                linked += 1
+    logbus.log(run_id, "info", "%d Mail-Job-Zuordnungen (LLM)." % linked)
 
     updated = 0
     for item in merged.values():
