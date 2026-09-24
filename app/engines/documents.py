@@ -237,11 +237,19 @@ def _find_fonts():
 
 
 def _portrait_path() -> str:
-    doc = db.one("SELECT * FROM documents WHERE kind='portrait' ORDER BY created_at DESC LIMIT 1")
-    if not doc:
-        return ""
-    p = resolve_path(doc)
-    return p if os.path.exists(p) else ""
+    active = db.get_setting("active_photo", "") or ""
+    if active.isdigit():
+        doc = db.one("SELECT * FROM documents WHERE id=?", (int(active),))
+        if doc:
+            p = resolve_path(doc)
+            if os.path.exists(p):
+                return p
+    for doc in db.query("SELECT * FROM documents ORDER BY created_at DESC"):
+        if doc["name"].lower().endswith((".png", ".jpg", ".jpeg", ".webp")):
+            p = resolve_path(doc)
+            if os.path.exists(p):
+                return p
+    return ""
 
 
 def text_to_pdf(text: str, path, photo: str = "") -> bool:

@@ -243,7 +243,12 @@ def documents(request: Request):
     selected = _selected_doc_ids()
     return tr("documents.html", _ctx(
         request, docs=docs, kinds=config.DOC_KINDS,
-        selected_docs=selected, backend=secrets.store.backend()))
+        selected_docs=selected, active_photo=_active_photo_id(),
+        backend=secrets.store.backend()))
+
+
+def _is_image_name(name: str) -> bool:
+    return (name or "").lower().endswith((".png", ".jpg", ".jpeg", ".webp"))
 
 
 def _selected_doc_ids() -> set:
@@ -251,11 +256,28 @@ def _selected_doc_ids() -> set:
     ids = {int(x) for x in raw.split(",") if x.strip().isdigit()}
     if ids:
         return ids
-    return {d["id"] for d in db.query("SELECT id FROM documents")}
+    return {d["id"] for d in db.query("SELECT id, name FROM documents") if not _is_image_name(d["name"])}
+
+
+def _active_photo_id() -> int:
+    value = db.get_setting("active_photo", "") or ""
+    if value.isdigit():
+        return int(value)
+    for d in db.query("SELECT id, name FROM documents ORDER BY created_at DESC"):
+        if _is_image_name(d["name"]):
+            return d["id"]
+    return 0
 
 
 @app.post("/api/documents/{doc_id}/use")
 def api_doc_use(doc_id: int, use: int = Form(1)):
+    doc = db.one("SELECT id, name FROM documents WHERE id=?", (doc_id,))
+    if doc and _is_image_name(doc["name"]):
+        if use:
+            db.set_setting("active_photo", str(doc_id))
+        elif (db.get_setting("active_photo", "") or "") == str(doc_id):
+            db.set_setting("active_photo", "")
+        return JSONResponse({"active_photo": db.get_setting("active_photo", "")})
     ids = _selected_doc_ids()
     if use:
         ids.add(doc_id)
