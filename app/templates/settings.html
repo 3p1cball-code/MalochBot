@@ -33,6 +33,10 @@
       <input type="number" name="fit_threshold" min="0" max="100" value="{{ values.fit_threshold or 0 }}">
       <span class="small muted">Jobs unter dieser Schwelle werden standardmäßig aus der Liste gefiltert. 0 = aus. Gilt auch für die Suche.</span>
     </div>
+    <div class="field"><label>Heimatstadt</label>
+      <input name="home_city" value="{{ values.home_city or '' }}" placeholder="z. B. Berlin">
+      <span class="small muted">Wird als Schnellwahl im Ort-Filter der Jobliste genutzt.</span>
+    </div>
     <div class="field"><label>{{ t('settings.profile') }}</label>
       <textarea name="profile" rows="5">{{ values.profile }}</textarea>
     </div>

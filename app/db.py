@@ -124,6 +124,7 @@ DEFAULT_SETTINGS = {
     "language": "de",
     "fit_threshold": "0",
     "search_doc_ids": "",
+    "home_city": "Berlin",
 }
 
 

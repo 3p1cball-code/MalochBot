@@ -33,6 +33,12 @@
     <div class="field"><label>{{ t('common.source') }}</label><select id="f-source"><option value="">{{ t('common.all') }}</option>
       {% for s in sources %}<option value="{{ s }}">{{ s }}</option>{% endfor %}</select></div>
     <div class="field"><label>{{ t('common.remote') }}</label><select id="f-remote"><option value="">{{ t('common.any') }}</option><option value="1">{{ t('common.remote') }}</option></select></div>
+    <div class="field"><label>Ort</label>
+      <div style="display:flex;gap:6px">
+        <input id="f-loc" placeholder="z. B. {{ home_city }}" style="min-width:120px">
+        <button class="btn btn-sm" type="button" onclick="mbQuickCity()" title="Heimatstadt">Home</button>
+      </div>
+    </div>
     <div class="field"><label>{{ t('common.fit') }} ≥</label><input type="number" id="f-fit" min="0" max="100" value="{{ fit_threshold or 0 }}" style="width:88px"></div>
     <div class="field"><label>{{ t('common.from') }}</label><input type="date" id="f-from"></div>
     <div class="field"><label>{{ t('common.to') }}</label><input type="date" id="f-to"></div>
@@ -95,6 +101,7 @@ window.MB_STATUS_COLORS = {{ status_colors|tojson }};
 window.MB_STATUS_LIST = {{ statuses|tojson }};
 window.MB_FIT_THRESHOLD = {{ fit_threshold or 0 }};
 window.MB_MODEL = {{ model|tojson }};
+window.MB_HOME_CITY = {{ home_city|tojson }};
 window.MB_PRESELECT = new URLSearchParams(location.search).get("job");
 window.MB_I18N = {
   why: {{ t('detail.why')|tojson }}, what: {{ t('detail.what')|tojson }},

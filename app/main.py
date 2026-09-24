@@ -68,6 +68,7 @@ def _ctx(request: Request, **kwargs):
         "lang": lang,
         "languages": i18n.LANGUAGES,
         "model": db.get_setting("model", config.DEFAULT_MODEL),
+        "home_city": db.get_setting("home_city", "Berlin"),
         "build_id": BUILD_ID,
         "setup_done": db.get_setting("setup_done", "0") == "1",
     }
@@ -452,8 +453,8 @@ def settings(request: Request, saved: str = ""):
 async def settings_save(request: Request):
     form = await request.form()
     for key in ("model", "profile", "preferences", "search_extra", "fit_threshold",
-                "mail_provider", "mail_email", "mail_host", "mail_port", "mail_folders",
-                "mail_since"):
+                "home_city", "mail_provider", "mail_email", "mail_host", "mail_port",
+                "mail_folders", "mail_since"):
         if key in form:
             db.set_setting(key, str(form.get(key, "")))
     password = form.get("mail_password", "")

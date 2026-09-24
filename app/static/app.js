@@ -74,6 +74,7 @@ function mbEsc(s) {
     statusBoxes.forEach(function (c) { if (c.checked) checkedStatus[c.value] = 1; });
     const source = document.getElementById("f-source").value;
     const remote = document.getElementById("f-remote").value;
+    const loc = (document.getElementById("f-loc") ? document.getElementById("f-loc").value : "").toLowerCase();
     const fit = parseInt(document.getElementById("f-fit").value || "0", 10);
     const from = document.getElementById("f-from").value;
     const to = document.getElementById("f-to").value;
@@ -85,6 +86,7 @@ function mbEsc(s) {
       if (!checkedStatus[j.status]) return false;
       if (source && j.source !== source) return false;
       if (remote === "1" && !j.remote) return false;
+      if (loc && (j.location || "").toLowerCase().indexOf(loc) === -1) return false;
       if (fit > 0 && (j.score || 0) < fit) return false;
       const d = (j.found_at || "").slice(0, 10);
       if (from && d < from) return false;
@@ -210,7 +212,7 @@ function mbEsc(s) {
     renderList();
   }
 
-  ["f-q", "f-source", "f-remote", "f-fit", "f-from", "f-to", "f-sort"].forEach(function (id) {
+  ["f-q", "f-source", "f-remote", "f-loc", "f-fit", "f-from", "f-to", "f-sort"].forEach(function (id) {
     const el = document.getElementById(id);
     el.addEventListener("input", renderList);
     el.addEventListener("change", renderList);
@@ -218,7 +220,7 @@ function mbEsc(s) {
   statusBoxes.forEach(function (el) { el.addEventListener("change", renderList); });
 
   window.mbResetFilters = function () {
-    ["f-q", "f-source", "f-remote", "f-from", "f-to"].forEach(function (id) {
+    ["f-q", "f-source", "f-remote", "f-loc", "f-from", "f-to"].forEach(function (id) {
       document.getElementById(id).value = "";
     });
     statusBoxes.forEach(function (c) { c.checked = true; });
@@ -265,6 +267,7 @@ function mbEsc(s) {
   }
   window.mbJobs = jobs;
   window.mbShowDetail = showDetail;
+  window.mbRenderList = renderList;
 })();
 
 /* ---------- Inline-Laufstatus (statt Log-Fokus) ---------- */
@@ -359,6 +362,11 @@ window.mbImproveCover = function (id) {
       if (window.mbShowDetail) window.mbShowDetail(id);
     },
   });
+};
+
+window.mbQuickCity = function () {
+  const el = document.getElementById("f-loc");
+  if (el) { el.value = window.MB_HOME_CITY || "Berlin"; if (window.mbRenderList) window.mbRenderList(); }
 };
 
 function updateUseLabels() {
