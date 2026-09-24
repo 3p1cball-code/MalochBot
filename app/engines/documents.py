@@ -41,6 +41,7 @@ IMPROVE_PROMPT = """Erstelle eine verbesserte Fassung des folgenden Dokuments au
 Regeln:
 - Alle Fakten, Daten, Stationen und Kontaktdaten beibehalten (nichts erfinden).
 - Struktur, Formulierungen und Wirkung verbessern, praegnanter und professioneller.
+- Zusaetzlicher Hinweis der Person (unbedingt umsetzen): {instruction}
 - Gib NUR den vollstaendigen, ueberarbeiteten Text zurueck, ohne Kommentar oder Erklaerung.
 
 Dokumentart: {kind}
@@ -128,7 +129,7 @@ def evaluate_document(doc_id: int, run_id: int, model: str = "") -> str:
     return result
 
 
-def improve_document(doc_id: int, run_id: int, model: str = "") -> dict:
+def improve_document(doc_id: int, run_id: int, model: str = "", instruction: str = "") -> dict:
     doc = db.one("SELECT * FROM documents WHERE id=?", (doc_id,))
     if not doc:
         raise RuntimeError("Dokument nicht gefunden.")
@@ -136,7 +137,8 @@ def improve_document(doc_id: int, run_id: int, model: str = "") -> dict:
     if content.startswith("["):
         raise RuntimeError("Inhalt dieses Dateityps kann nicht automatisch verbessert werden.")
     prompt = IMPROVE_PROMPT.format(
-        kind=doc["kind"], profile=db.get_setting("profile", ""), content=content)
+        kind=doc["kind"], profile=db.get_setting("profile", ""), content=content,
+        instruction=(instruction.strip() or "keiner"))
     logbus.log(run_id, "info", "Erzeuge verbesserte Fassung von '%s' ..." % doc["name"])
     rc, out = oc.run(prompt, model=model, run_id=run_id)
     improved = out.strip()
@@ -146,20 +148,10 @@ def improve_document(doc_id: int, run_id: int, model: str = "") -> dict:
     stem, ext = os.path.splitext(doc["name"])
     ext = ext.lower()
     if ext in (".pdf", ".docx"):
-        html_path = config.GENERATED_DIR / ("%s_verbessert_%d.html" % (stem, run_id))
-        html_path.write_text(
-            "<html><body><pre style='font-family:Arial;font-size:12pt;white-space:pre-wrap'>%s</pre></body></html>"
-            % html_mod.escape(improved), encoding="utf-8")
-        subprocess.run(["soffice", "--headless", "--convert-to", "pdf", "--outdir",
-                        str(config.GENERATED_DIR), str(html_path)],
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
-        produced_pdf = html_path.with_suffix(".pdf")
         target = config.UPLOAD_DIR / ("%s_verbessert.pdf" % stem)
-        if produced_pdf.exists():
-            shutil.move(str(produced_pdf), str(target))
-        else:
+        if not text_to_pdf(improved, target):
+            target = config.UPLOAD_DIR / ("%s_verbessert.md" % stem)
             target.write_text(improved, encoding="utf-8")
-            target = target.with_suffix(".md")
     else:
         target = config.UPLOAD_DIR / ("%s_verbessert.md" % stem)
         target.write_text(improved, encoding="utf-8")

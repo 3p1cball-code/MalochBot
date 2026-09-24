@@ -460,9 +460,9 @@ def api_doc_evaluate(doc_id: int):
 
 
 @app.post("/api/documents/{doc_id}/improve")
-def api_doc_improve(doc_id: int):
+def api_doc_improve(doc_id: int, instruction: str = Form("")):
     rid = start_background("verbesserung", lambda r, m: {
-        "ergebnis": documents_engine.improve_document(doc_id, r, m)})
+        "ergebnis": documents_engine.improve_document(doc_id, r, m, instruction)})
     return JSONResponse({"run_id": rid})
 
 

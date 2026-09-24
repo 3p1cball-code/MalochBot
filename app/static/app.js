@@ -358,7 +358,9 @@ window.mbDocEval = function (id) {
 };
 
 window.mbDocImprove = function (id) {
-  mbRun("/api/documents/" + id + "/improve", {}, {
+  const hint = window.prompt("Was soll verbessert oder ergänzt werden? (optional)\nz. B. \"mehr Kenntnisse mit opencode und Claude Code ergänzen\"", "");
+  if (hint === null) return;
+  mbRun("/api/documents/" + id + "/improve", { instruction: hint }, {
     running: "Verbesserte Kopie wird erzeugt (LLM: " + mbModelName() + ") ...",
     done: "Verbesserte Kopie erstellt.", error: "Erstellung fehlgeschlagen: ",
     onDone: function () { location.reload(); },
