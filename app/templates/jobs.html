@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% set page_title = t('jobs.title') %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ t('jobs.title') }} <span id="job-count" class="muted small"></span></h1>
+    <p class="subtitle" style="margin-bottom:0">{{ t('jobs.subtitle') }}</p>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <div style="display:flex;gap:8px">
+      <input id="search-extra" placeholder="{{ t('jobs.extra_ph') }}" style="min-width:200px">
+      <button class="btn btn-primary" type="button" onclick="mbJobSearch()">{{ t('jobs.search_new') }}</button>
+    </div>
+    <button class="btn" type="button" onclick="mbStatusUpdate()">{{ t('jobs.update') }}</button>
+  </div>
+</div>
+
+{% if not opencode_ok %}
+<div class="banner" style="background:rgba(220,38,38,.12);border-color:var(--err);color:var(--err)">
+  <span><strong>opencode</strong> {{ "not found – analysis disabled." if lang == "en" else "wurde nicht gefunden – Analysen sind deaktiviert." }}</span>
+</div>
+{% endif %}
+
+<div class="card tight" style="margin:16px 0">
+  <div class="filters" style="margin-bottom:0">
+    <div class="field" style="flex:1;min-width:200px"><label>{{ t('common.search') }}</label>
+      <input id="f-q" placeholder="{{ t('common.company') }}, {{ t('common.position') }}, {{ t('common.location') }}"></div>
+    <div class="field"><label>{{ t('common.status') }}</label><select id="f-status"><option value="">{{ t('common.all') }}</option></select></div>
+    <div class="field"><label>{{ t('common.source') }}</label><select id="f-source"><option value="">{{ t('common.all') }}</option>
+      {% for s in sources %}<option value="{{ s }}">{{ s }}</option>{% endfor %}</select></div>
+    <div class="field"><label>{{ t('common.remote') }}</label><select id="f-remote"><option value="">{{ t('common.any') }}</option><option value="1">{{ t('common.remote') }}</option></select></div>
+    <div class="field"><label>{{ t('common.fit') }} ≥</label><input type="number" id="f-fit" min="0" max="100" value="{{ fit_threshold or 0 }}" style="width:88px"></div>
+    <div class="field"><label>{{ t('common.from') }}</label><input type="date" id="f-from"></div>
+    <div class="field"><label>{{ t('common.to') }}</label><input type="date" id="f-to"></div>
+    <div class="field"><label>{{ t('common.sort') }}</label><select id="f-sort">
+      <option value="found">{{ t('common.newest') }}</option>
+      <option value="score">{{ t('common.best_fit') }}</option>
+      <option value="company">{{ t('common.company_az') }}</option>
+      <option value="status">{{ t('common.status') }}</option>
+    </select></div>
+    <button class="btn" type="button" onclick="mbResetFilters()">{{ t('common.reset') }}</button>
+  </div>
+</div>
+
+<details class="card tight" style="margin-bottom:14px">
+  <summary style="cursor:pointer;font-weight:600">Job manuell hinzufügen</summary>
+  <form method="post" action="/jobs/add" class="filters" style="margin-top:12px">
+    <div class="field"><label>Firma *</label><input name="company" required></div>
+    <div class="field" style="flex:1;min-width:220px"><label>Position *</label><input name="title" required></div>
+    <div class="field"><label>Ort</label><input name="location"></div>
+    <div class="field"><label>Remote</label><input type="checkbox" name="remote" value="1"></div>
+    <div class="field"><label>Link Stelle</label><input name="url"></div>
+    <div class="field"><label>Link Firma</label><input name="company_url"></div>
+    <div class="field"><label>Fit 0–100</label><input type="number" name="score" min="0" max="100" style="width:90px"></div>
+    <div class="field"><label>Status</label><select name="status">
+      {% for s in statuses %}<option value="{{ s }}">{{ status_labels[s] }}</option>{% endfor %}</select></div>
+    <div class="field" style="flex:1;min-width:220px"><label>Warum passt es?</label><input name="rationale"></div>
+    <div class="field" style="flex:1;min-width:220px"><label>Beschreibung</label><input name="description"></div>
+    <button class="btn btn-primary" type="submit">Hinzufügen</button>
+  </form>
+</details>
+
+<div class="jobs-layout">
+  <div class="jobs-pane">
+    <div class="jobs-scroll">
+      <table class="jobs-table">
+        <colgroup>
+          <col style="width:20%"><col style="width:33%"><col class="ort" style="width:22%">
+          <col style="width:7%"><col style="width:16%"><col style="width:11%">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>{{ t('common.company') }}</th><th>{{ t('common.position') }}</th><th class="ort">{{ t('common.location') }}</th>
+            <th style="text-align:center">{{ t('common.fit') }}</th><th>{{ t('common.status') }}</th><th>{{ t('common.found') }}</th>
+          </tr>
+        </thead>
+        <tbody id="job-rows"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="splitter" id="splitter" title="Ziehen"><div class="grip"></div></div>
+  <aside class="job-detail" id="job-detail">
+    <div class="muted" style="padding:24px">{{ t('jobs.select') }}</div>
+  </aside>
+</div>
+
+<script>
+window.MB_JOBS = {{ jobs_json|safe }};
+window.MB_STATUS_LABELS = {{ status_labels|tojson }};
+window.MB_STATUS_COLORS = {{ status_colors|tojson }};
+window.MB_STATUS_LIST = {{ statuses|tojson }};
+window.MB_FIT_THRESHOLD = {{ fit_threshold or 0 }};
+window.MB_MODEL = {{ model|tojson }};
+window.MB_PRESELECT = new URLSearchParams(location.search).get("job");
+window.MB_I18N = {
+  why: {{ t('detail.why')|tojson }}, what: {{ t('detail.what')|tojson }},
+  history: {{ t('detail.history')|tojson }}, actions: {{ t('detail.actions')|tojson }},
+  appstatus: {{ t('detail.appstatus')|tojson }}, cover: {{ t('detail.cover')|tojson }},
+  job: {{ t('detail.job')|tojson }}, company: {{ t('detail.company')|tojson }},
+  notec: {{ t('detail.notec')|tojson }}, statuschange: {{ t('detail.statuschange')|tojson }},
+  published: {{ t('detail.published')|tojson }}, answer: {{ t('detail.answer')|tojson }},
+  optional: {{ t('detail.optional')|tojson }}, source: {{ t('detail.source')|tojson }},
+  found: {{ t('common.found')|tojson }},
+  save: {{ t('common.save')|tojson }}, none: {{ t('jobs.none')|tojson }}
+};
+</script>
+{% endblock %}

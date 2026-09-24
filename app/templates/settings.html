@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% set page_title = "Einstellungen" %}
+{% block content %}
+<h1>{{ t('settings.title') }}</h1>
+<p class="subtitle">{{ t('settings.subtitle') }}</p>
+
+{% if saved %}<div class="flash">{{ t('settings.saved') }}</div>{% endif %}
+
+<form method="post" action="/settings" class="stack">
+  <div class="card stack">
+    <h2 style="margin-top:0">LLM</h2>
+    <div class="field"><label>{{ t('settings.model') }}</label>
+      <select name="model">
+        {% if values.model and values.model not in models %}
+        <option value="{{ values.model }}" selected>{{ values.model }} (aktuell, nicht in Liste)</option>
+        {% endif %}
+        {% for provider, list in models_by_provider.items() %}
+        <optgroup label="{{ provider }}">
+          {% for m in list %}<option value="{{ m }}" {% if values.model == m %}selected{% endif %}>{{ m }}</option>{% endfor %}
+        </optgroup>
+        {% endfor %}
+      </select>
+      <span class="small muted">Live vom System: alle Modelle, die opencode hier kennt ({{ models|length }}).</span>
+    </div>
+  </div>
+
+  <div class="card stack">
+    <h2 style="margin-top:0">{{ t('settings.docs_x') }}</h2>
+    <div class="field"><label>{{ t('settings.docs_x') }}</label>
+      <div class="doc-picker">
+        {% for d in documents %}
+        <label class="doc-pick">
+          <input type="checkbox" name="search_docs" value="{{ d.id }}"
+                 onchange="this.form.submit()"
+                 {% if d.id in selected_docs %}checked{% endif %}>
+          <span><strong>{{ d.name }}</strong> <span class="muted small">· {{ doc_labels[d.kind] }}</span></span>
+        </label>
+        {% endfor %}
+        {% if not documents %}<span class="muted small">Noch keine Unterlagen – bitte unter „Unterlagen" hochladen.</span>{% endif %}
+      </div>
+      <span class="small muted">Standard: alle Dokumente. Auswahl wird beim Anklicken sofort gespeichert.</span>
+    </div>
+    <div class="field"><label>{{ t('settings.extra_y') }}</label>
+      <textarea name="search_extra" rows="3">{{ values.search_extra }}</textarea>
+    </div>
+    <div class="field"><label>{{ t('settings.threshold') }}</label>
+      <input type="number" name="fit_threshold" min="0" max="100" value="{{ values.fit_threshold or 0 }}">
+      <span class="small muted">Jobs unter dieser Schwelle werden standardmäßig aus der Liste gefiltert. 0 = aus. Gilt auch für die Suche.</span>
+    </div>
+    <div class="field"><label>{{ t('settings.profile') }}</label>
+      <textarea name="profile" rows="5">{{ values.profile }}</textarea>
+    </div>
+    <div class="field"><label>{{ t('settings.prefs') }}</label>
+      <textarea name="preferences" rows="4">{{ values.preferences }}</textarea>
+    </div>
+  </div>
+
+  <div class="card stack">
+    <h2 style="margin-top:0">{{ t('settings.mail') }}</h2>
+    <p class="small muted">Idealerweise das Postfach, das du bei Bewerbungen angibst. Zugriff erfolgt read-only per IMAP.</p>
+    <div class="field"><label>Anbieter</label>
+      <select name="mail_provider" onchange="mbApplyProvider(this)">
+        <option value="">— bitte wählen —</option>
+        {% for p in mail_providers %}
+        <option value="{{ p.key }}" {% if values.mail_provider == p.key %}selected{% endif %}>{{ p.label }}</option>
+        {% endfor %}
+      </select>
+      <span id="mail-note" class="small muted"></span>
+    </div>
+    <div class="grid cols-2">
+      <div class="field"><label>E-Mail-Adresse</label><input name="mail_email" value="{{ values.mail_email }}" placeholder="name@beispiel.de"></div>
+      <div class="field"><label>Passwort / App-Passwort {% if has_mail_password %}<span class="small muted">(gespeichert – leer lassen zum Beibehalten)</span>{% endif %}</label>
+        <input type="password" name="mail_password" placeholder="••••••••">
+      </div>
+      <div class="field"><label>IMAP-Host (bei „anderer Anbieter")</label><input id="mail_host" name="mail_host" value="{{ values.mail_host }}"></div>
+      <div class="field"><label>Port</label><input id="mail_port" name="mail_port" value="{{ values.mail_port }}"></div>
+      <div class="field"><label>Ordner (kommagetrennt)</label><input name="mail_folders" value="{{ values.mail_folders }}"></div>
+      <div class="field"><label>Erster Scan ab Datum</label><input type="date" name="mail_since" value="{{ values.mail_since }}"></div>
+    </div>
+    <label class="small"><input type="checkbox" name="clear_password" value="1"> gespeichertes Passwort löschen</label>
+  </div>
+
+  <div><button class="btn btn-primary" type="submit">{{ t('common.save') }}</button></div>
+</form>
+
+<div class="card" style="margin-top:20px">
+  <h2 style="margin-top:0">{{ t('settings.shutdown') }}</h2>
+  <div class="filters">
+    <form method="post" action="/settings/test-mail" class="inline-form">
+      <button class="btn" type="submit">{{ t('settings.test_mail') }}</button>
+    </form>
+    <form method="post" action="/settings/import" class="inline-form">
+      <button class="btn" type="submit">{{ t('settings.import') }}</button>
+    </form>
+    <form method="post" action="/shutdown" class="inline-form">
+      <button class="btn btn-danger" type="submit" onclick="return confirm('MalochBot wirklich beenden?')">{{ t('settings.shutdown') }}</button>
+    </form>
+  </div>
+  <p class="small muted">Der Import liest die bisherigen MalochBot-Daten (jobs.json / tracking_state.json) aus dem übergeordneten Ordner. Der Server beendet sich außerdem automatisch, wenn eine Zeit lang keine Seite mehr aktiv ist.</p>
+</div>
+
+<script>
+window.MB_PROVIDERS = {
+{% for p in mail_providers %}
+  "{{ p.key }}": {"imap": "{{ p.imap }}", "port": {{ p.port }}, "note": {{ p.note|tojson }}}{{ "," if not loop.last }}
+{% endfor %}
+};
+</script>
+{% endblock %}

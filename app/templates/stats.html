@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% set page_title = t('stats.title') %}
+{% block content %}
+<h1>{{ t('stats.title') }}</h1>
+<p class="subtitle">{{ t('stats.subtitle') }}</p>
+
+<div class="grid cols-4" id="stat-cards"></div>
+
+<div class="grid cols-2" style="margin-top:20px">
+  <div class="card"><h2>{{ t('stats.by_status') }}</h2><div id="chart-status"></div></div>
+  <div class="card"><h2>{{ t('stats.phases') }}</h2><div id="chart-phases"></div></div>
+</div>
+<div class="grid cols-2" style="margin-top:20px">
+  <div class="card"><h2>{{ t('stats.per_month') }}</h2><div id="chart-months"></div></div>
+  <div class="card"><h2>{{ t('stats.fit') }}</h2><div id="chart-fit"></div></div>
+</div>
+<div class="card" style="margin-top:20px"><h2>{{ t('stats.sources') }}</h2><div id="chart-sources"></div></div>
+
+<script>
+window.MB_STATS = {{ stats_json|safe }};
+window.MB_STATS_LABELS = { total: {{ t('stats.total')|tojson }}, applied: {{ t('stats.applied')|tojson }}, interviews: {{ t('stats.interviews')|tojson }}, rejections: {{ t('stats.rejections')|tojson }} };
+</script>
+{% endblock %}

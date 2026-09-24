@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% set page_title = t('log.title') %}
+{% block content %}
+<h1>{{ t('log.title') }}</h1>
+<p class="subtitle">{{ t('log.subtitle') }}</p>
+
+{% if run %}
+<div class="card" style="margin-bottom:18px">
+  <div class="filters" style="margin-bottom:8px">
+    <span class="badge" style="background:#334155">#{{ run.id }}</span>
+    <span class="pill">{{ run.kind }}</span>
+    <span class="pill">{{ run.model }}</span>
+    <span class="small muted">{{ run.status }}: <span class="status-dot" id="log-dot" style="background:{{ '#eab308' if running else '#22c55e' }}"></span><span id="log-status">{{ "läuft" if running else run.status }}</span></span>
+    {% if run.summary %}<span class="small muted">{{ run.summary }}</span>{% endif %}
+  </div>
+  {% if running %}
+  <div id="log-box" class="log-box" data-run-id="{{ run.id }}"></div>
+  {% else %}
+  <div class="log-box">
+    {% for l in logs %}<span class="log-line {{ l.level }}">[{{ l.ts[11:19] }}] {{ l.message }}</span>{% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+<h2>{{ t('log.runs') }}</h2>
+<div class="table-wrap"><table class="table">
+  <tr><th>#</th><th>{{ t('common.source') }}</th><th>Modell</th><th>{{ t('common.status') }}</th><th>{{ t('common.from') }}</th><th></th></tr>
+  {% for r in runs %}
+  <tr>
+    <td>{{ r.id }}</td>
+    <td>{{ r.kind }}</td>
+    <td class="small muted">{{ r.model }}</td>
+    <td>{{ r.status }}</td>
+    <td class="small muted">{{ r.started_at[:19] | replace("T", " ") }}</td>
+    <td><a class="btn btn-sm" href="/log/{{ r.id }}">{{ t('log.view') }}</a></td>
+  </tr>
+  {% endfor %}
+</table></div>
+{% endblock %}

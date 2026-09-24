@@ -1,0 +1,34 @@
+# Laufzeitdaten (nie ins Repo)
+data/
+*.sqlite3
+*.sqlite3-*
+logs/
+documents/
+generated/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.venv-win/
+
+# Secrets (falls jemand versehentlich lokal ablegt)
+*.env
+!*.env.example
+secrets.json
+key.bin
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Iterations-Tooling / Screenshots
+tools/node_modules/
+_shot*.png
+_bp/
+_brave*/
+Screenshot_*.png

@@ -1,0 +1,18 @@
+[Unit]
+Description=MalochBot - automatisierte Jobsuche & Bewerbungsverwaltung
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Pfad anpassen (hier: Benutzerdienst)
+WorkingDirectory=%h/Dokumente/jobsuche/neue_jobs_bot/MalochBot
+Environment=MALOCHBOT_HOST=0.0.0.0
+Environment=MALOCHBOT_PORT=8765
+Environment=TRACKER_MODEL=deepseek/deepseek-flash
+ExecStart=%h/Dokumente/jobsuche/neue_jobs_bot/MalochBot/.venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8765
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

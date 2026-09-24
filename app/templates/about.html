@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% set page_title = "Über & Spenden" %}
+{% block content %}
+<h1>{{ t('about.title') }}</h1>
+<p class="subtitle">{{ t('about.tagline') }}</p>
+
+<div class="grid cols-2">
+  <div class="card">
+    <h2 style="margin-top:0">Was MalochBot macht</h2>
+    <ul>
+      <li>Neue, passende Jobs finden – per opencode/LLM, mit Deduplizierung.</li>
+      <li>Alle Jobs in einer Datenbank, Detailseite je Stelle, filterbar nach Zeitraum.</li>
+      <li>Bewerbungen tracken: Mails werden per IMAP gelesen und der Status per LLM bewertet.</li>
+      <li>Unterlagen zentral ablegen, per LLM bewerten und Anschreiben erzeugen.</li>
+      <li>Live-Log jedes Prozesses, farbcodierte Übersichten.</li>
+    </ul>
+    <h2>Open Source</h2>
+    <p>Lizenz: MIT. Der komplette Code ist einsehbar – jede Netzwerkaktion ist nachvollziehbar.
+       Kein Telemetrie-Versand.</p>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">Sicherheit</h2>
+    <p>Zugangsdaten (Mailpasswort, API-Keys) liegen im Secret-Store
+       (<strong>{{ secret_backend }}</strong>) – nie im Repository. Mailzugriff ist read-only und inkrementell.</p>
+    <p><strong>opencode:</strong> {{ "verfügbar" if opencode_ok else "nicht gefunden – bitte installieren" }}</p>
+
+    <h2>Spenden</h2>
+    <p>Wenn dir MalochBot Zeit spart, freue ich mich über eine kleine Anerkennung.</p>
+    <p>
+      <a class="btn btn-primary" href="{{ donate_paypal }}" target="_blank" rel="noopener">{{ t('about.donate') }}</a>
+      <a class="btn" href="mailto:{{ donate_email }}">{{ donate_email }}</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

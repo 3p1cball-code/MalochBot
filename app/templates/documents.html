@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% set page_title = t('docs.title') %}
+{% block content %}
+<h1>{{ t('docs.title') }}</h1>
+<p class="subtitle">{{ t('docs.subtitle') }}</p>
+
+<div class="card" style="margin-bottom:20px">
+  <h2 style="margin-top:0">{{ t('docs.upload') }}</h2>
+  <form method="post" action="/documents/upload" enctype="multipart/form-data" class="filters">
+    <div class="field"><label>{{ t('docs.file') }}</label><input type="file" name="file" required></div>
+    <div class="field"><label>{{ t('docs.kind') }}</label>
+      <select name="kind">
+        {% for k in kinds %}<option value="{{ k }}">{{ doc_labels[k] }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field" style="flex:1;min-width:220px"><label>{{ t('docs.note') }}</label><input name="notes"></div>
+    <button class="btn btn-primary" type="submit">{{ t('docs.upload_btn') }}</button>
+  </form>
+</div>
+
+{% for kind in kinds %}
+{% set group = docs | selectattr("kind", "equalto", kind) | list %}
+{% if group %}
+<h2>{{ doc_labels[kind] }} <span class="muted small">({{ group|length }})</span></h2>
+<div class="table-wrap" style="margin-bottom:18px"><table class="table">
+  <tr><th>{{ t('docs.file') }}</th><th>{{ t('docs.kind') }}</th><th>{{ t('docs.evaluation') }}</th><th></th></tr>
+  {% for d in group %}
+  <tr>
+    <td><a href="/documents/{{ d.id }}/download">{{ d.name }}</a><div class="small muted">v{{ d.version }} · {{ (d.size / 1024) | round(1) }} KB · {{ d.created_at[:10] }}</div></td>
+    <td>
+      <form method="post" action="/documents/{{ d.id }}/kind" class="inline-form">
+        <select name="kind" onchange="this.form.submit()">
+          {% for k in kinds %}<option value="{{ k }}" {% if d.kind == k %}selected{% endif %}>{{ doc_labels[k] }}</option>{% endfor %}
+        </select>
+      </form>
+    </td>
+    <td>
+      {% if d.notes %}
+      <details class="eval"><summary>{{ t('docs.show_eval') }}</summary>
+        <div class="eval-box" style="margin-top:8px"><pre>{{ d.notes }}</pre></div>
+      </details>
+      {% else %}<span class="muted small">—</span>{% endif %}
+    </td>
+    <td style="white-space:nowrap">
+      <form method="post" action="/documents/{{ d.id }}/kind" class="inline-form">
+        <select name="kind" onchange="this.form.submit()">
+          {% for k in kinds %}<option value="{{ k }}" {% if d.kind == k %}selected{% endif %}>{{ doc_labels[k] }}</option>{% endfor %}
+        </select>
+      </form>
+      <button class="btn btn-sm" type="button" onclick="mbDocEval({{ d.id }})">{{ t('docs.evaluate') }}</button>
+      <button class="btn btn-sm" type="button" onclick="mbDocImprove({{ d.id }})">{{ t('docs.improve') }}</button>
+      <form method="post" action="/documents/{{ d.id }}/delete" class="inline-form"
+            onsubmit="return confirm('{{ t('docs.confirm_delete') }}')">
+        <button class="btn btn-sm btn-danger" type="submit">{{ t('common.delete') }}</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+</table></div>
+{% endif %}
+{% endfor %}
+
+{% if not docs %}<p class="muted">{{ t('docs.empty') }}</p>{% endif %}
+{% endblock %}

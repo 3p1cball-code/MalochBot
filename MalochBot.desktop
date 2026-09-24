@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=MalochBot
+Comment=Automatisierte Jobsuche und Bewerbungsverwaltung
+Exec=konsole --workdir /home/alex/Dokumente/jobsuche/neue_jobs_bot/MalochBot -e /home/alex/Dokumente/jobsuche/neue_jobs_bot/MalochBot/run.sh
+Icon=system-search
+Terminal=false
+Categories=Utility;Office;

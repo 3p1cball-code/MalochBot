@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="de" data-theme="hell">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ app_name }}{% if page_title %} · {{ page_title }}{% endif %}</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <link rel="icon" href="/static/logo.svg" type="image/svg+xml">
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("mb-theme") || "hell";
+        document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+  {% set path = request.url.path %}
+  <header class="nav">
+    <div class="inner">
+      <a class="brand" href="/"><img class="mark" src="/static/logo.svg" alt="" width="26" height="26">{{ app_name }}</a>
+      <a class="navlink {{ 'active' if path == '/' }}" href="/">{{ t('nav.jobs') }}</a>
+      <a class="navlink {{ 'active' if path.startswith('/documents') }}" href="/documents">{{ t('nav.documents') }}</a>
+      <a class="navlink {{ 'active' if path.startswith('/stats') }}" href="/stats">{{ t('nav.stats') }}</a>
+      <a class="navlink {{ 'active' if path.startswith('/log') }}" href="/log">{{ t('nav.log') }}</a>
+      <a class="navlink {{ 'active' if path.startswith('/settings') }}" href="/settings">{{ t('nav.settings') }}</a>
+      <span class="spacer"></span>
+      <form method="post" action="/language" class="inline-form">
+        <input type="hidden" name="next" value="{{ request.url.path }}">
+        <button class="navlink {{ 'active' if lang == 'de' }}" name="lang" value="de" title="Deutsch">DE</button>
+        <button class="navlink {{ 'active' if lang == 'en' }}" name="lang" value="en" title="English">EN</button>
+      </form>
+      <select class="theme-select" title="Design" onchange="mbSetTheme(this.value)">
+        <option value="hell">Hell</option>
+        <option value="dunkel">Dunkel</option>
+        <option value="nord">Nord</option>
+        <option value="sepia">Sepia</option>
+      </select>
+    </div>
+  </header>
+  <main class="container{% if path == '/' %} wide{% endif %}">
+    <div id="runbar" class="runbar" hidden></div>
+    {% if not setup_done and request.url.path != "/settings" %}
+    <div class="banner">
+      <span>Willkommen! Richte <strong>MalochBot</strong> in einem Schritt ein: Modell wählen und Mailkonto verbinden.</span>
+      <a class="btn btn-primary" href="/settings">Jetzt einrichten</a>
+    </div>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="container muted small" style="margin-top:44px;padding-bottom:34px">
+    {{ app_name }} v{{ version }} · Open Source (MIT) ·
+    <a href="/about">{{ t('nav.about') }}</a> ·
+    <a href="mailto:{{ donate_email }}">{{ donate_email }}</a>
+  </footer>
+  <script src="/static/app.js"></script>
+  <script>window.MB_MODEL = {{ model|tojson }};</script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var sel = document.querySelector(".theme-select");
+      if (sel) sel.value = document.documentElement.getAttribute("data-theme") || "hell";
+    });
+  </script>
+</body>
+</html>
