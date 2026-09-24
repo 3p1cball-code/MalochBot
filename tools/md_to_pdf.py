@@ -88,6 +88,11 @@ def main(md_path: str, out_path: str, title: str, subtitle: str, date: str):
             flush()
             i += 1
             continue
+        if ln.startswith("!["):
+            flush()
+            blocks.append(("IMG", ln))
+            i += 1
+            continue
         if ln.startswith(("#", "- ", "* ", "> ")) or re.match(r"^\d+\.\s", ln.strip()) \
                 or ln.strip() == "---":
             flush()
@@ -102,6 +107,17 @@ def main(md_path: str, out_path: str, title: str, subtitle: str, date: str):
 
     for kind, payload in blocks:
         pdf.set_x(left)
+        if kind == "IMG":
+            m = re.match(r"!\[[^\]]*\]\(([^)]+)\)", payload)
+            if m:
+                img = m.group(1)
+                if not os.path.isabs(img):
+                    img = os.path.join(os.path.dirname(os.path.abspath(md_path)), img)
+                if os.path.exists(img):
+                    pdf.ln(2)
+                    pdf.image(img, w=content_w)
+                    pdf.ln(2)
+            continue
         if kind == "CODE":
             pdf.ln(1)
             pdf.set_text_color(60, 70, 90)

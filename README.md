@@ -28,8 +28,16 @@ und Karriereunterlagen** an einem Ort bündelt. Alle Analysen laufen über
 
 ## Dokumentation
 
-- [Technische Dokumentation](docs/DOKUMENTATION.md)
-- [Technische Dokumentation (PDF)](docs/MalochBot-Dokumentation.pdf)
+- [Arbeitsprobe (PDF)](docs/MalochBot-Arbeitsprobe.pdf) — Projekt und Denkweise
+- [Technische Dokumentation](docs/DOKUMENTATION.md) · [PDF](docs/MalochBot-Dokumentation.pdf)
+
+## Screenshots
+
+![Jobliste mit Filterleiste und Detailfenster](docs/screenshots/jobs.png)
+
+![Auswertung über alle Jobs und Bewerbungen](docs/screenshots/stats.png)
+
+![Zentrale Unterlagen mit Bewertung und Versionen](docs/screenshots/documents.png)
 
 ## Installation
 

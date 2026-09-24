@@ -120,17 +120,65 @@ Beste aus meiner Situation herausholen. MalochBot ist damit kein Selbstzweck. Es
 zusammen, was sonst verstreut bleibt: Suchen, Bewerten, Bewerben, Nachhalten, Unterlagen
 und die eigenen Stärken.
 
-## Was das über meine Arbeitsweise sagt
+## Der Pipeline-Gedanke
 
-MalochBot ist datengetrieben, reproduzierbar und dokumentiert. Es trifft Entscheidungen
-ehrlich, auch wenn sie unbequem sind — etwa, dass eine fehlende Rückmeldung niemals als
-Bewerbung gezählt wird. Es hält seine Grenzen fest. Es trennt Bedienung von Technik, damit
-ein Mensch es benutzen kann, ohne die Mechanik zu kennen. Und es schreibt nicht nur auf,
-was funktioniert hat, sondern auch, was verworfen wurde und warum.
+MalochBot ist als Pipeline gebaut, nicht als Sammlung von Einzelfunktionen. Jeder Schritt
+liefert ein Ergebnis, das der nächste weiterverwendet:
 
-Das ist der eigentliche Inhalt dieser Arbeitsprobe: nicht die Zeilen, sondern das Denken
-dahinter — und die Bereitschaft, einen Gedanken konsequent zu Ende zu führen und dann an der
-richtigen Stelle anzuhalten.
+- Die Suche erzeugt Kandidaten und ein Gedächtnis darüber, was bereits bekannt ist.
+- Die Bewertung erzeugt eine Rangfolge und eine Begründung.
+- Die Unterlagen liefern die Grundlage: Lebenslauf, Referenzen, Referenzanschreiben.
+- Das Anschreiben entsteht daraus und wird als Dokument abgelegt.
+- Das Postfach liefert die Fakten zum Status, daraus entsteht der Verlauf.
+- Diese Arbeitsprobe fließt als Unterlage zurück in die Suche.
+
+Jede Stufe ist einzeln prüfbar, jede ist austauschbar — anderes Modell, anderes Postfach,
+andere Engine — und nichts geht verloren, weil alles an einer Stelle zusammenläuft. Das ist
+derselbe Gedanke wie in einer 3D-Pipeline: reproduzierbare Schritte, klare Schnittstellen,
+ein durchgehender Datenfluss und die Möglichkeit, an genau einer Stelle etwas zu verbessern,
+ohne den Rest neu zu bauen. An Produktionen gehe ich seit jeher so heran — ob es um CGI,
+generative KI oder einen Bewerbungsprozess geht.
+
+## Ein Blick in die Anwendung
+
+Die folgenden Ansichten sind anonymisiert; Firmennamen sind durch neutrale Platzhalter
+ersetzt.
+
+![MalochBot — Jobliste mit Filterleiste und Detailfenster](screenshots/jobs.png)
+
+![MalochBot — Auswertung über alle Jobs und Bewerbungen](screenshots/stats.png)
+
+![MalochBot — zentrale Unterlagen mit Bewertung und Versionen](screenshots/documents.png)
+
+## Der technische Aufbau
+
+Damit die Pipeline nicht nur ein Gedanke bleibt, hier der tatsächliche Aufbau.
+
+**Anwendung.** Python mit FastAPI und Uvicorn als Server; Jinja2-Templates und
+handgeschriebenes CSS und JavaScript im Frontend, ohne Build-Schritt und ohne externe
+CDNs. SQLite als einzige Datenbank, portabel als eine Datei. Alle Analysen laufen über die
+opencode-CLI mit frei wählbarem Modell.
+
+**Direkte Abhängigkeiten (requirements.txt):** fastapi, uvicorn[standard], jinja2,
+python-multipart, keyring, cryptography, pypdf, fpdf2. Das ist bewusst schlank — die
+gesamte Oberfläche und alle Engines kommen ohne zusätzliche Frameworks aus.
+
+**Werkzeuge außerhalb des Codes:** opencode als LLM-Harness; systemd für den Dauerbetrieb;
+git und gh für Versionierung und Deployment. LibreOffice ist ausdrücklich nicht nötig,
+die PDF-Erzeugung passiert direkt in Python.
+
+**Umfang (Code-Zeilen):**
+
+- Python (Backend, Engines, Adapter): 2.149
+- Templates (Jinja2/HTML): 449
+- CSS und JavaScript: 819
+- Tooling (eigener Markdown-zu-PDF-Renderer): 187
+- Gesamt: rund 3.600 Zeilen
+
+Die größeren Module: main.py (509 Zeilen, Routen und API), engines/documents.py (326,
+Unterlagen und Anschreiben), engines/tracking.py (278, Postfach-Auswertung), db.py (229,
+Schema und Migrationen), secrets.py (113, Keyring und verschlüsselte Ablage), i18n.py (107,
+zweisprachige Oberfläche), config.py (102), engines/search.py (93), opencode_adapter.py (89).
 
 ---
 

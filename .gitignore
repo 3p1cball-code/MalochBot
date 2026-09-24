@@ -37,3 +37,9 @@ Screenshot_*.png
 _*.png
 _doc*.png
 _arb*.png
+
+# lokale Demo/Uncut
+.demo/
+docs/screenshots_raw/
+*-uncut.pdf
+_p*.png
