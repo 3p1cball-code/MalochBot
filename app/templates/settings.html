@@ -61,8 +61,8 @@
       <div class="field"><label>IMAP-Host (bei „anderer Anbieter")</label><input id="mail_host" name="mail_host" value="{{ values.mail_host }}"></div>
       <div class="field"><label>Port</label><input id="mail_port" name="mail_port" value="{{ values.mail_port }}"></div>
       <div class="field"><label>Ordner (kommagetrennt)</label><input name="mail_folders" value="{{ values.mail_folders }}"></div>
-      <div class="field"><label>Erster Scan ab Datum</label><input type="date" name="mail_since" value="{{ values.mail_since }}"></div>
     </div>
+    <p class="small muted">Beim ersten Lauf wird automatisch ein Zeit-Marker gesetzt; gescannt werden danach nur noch neue Mails (inkrementell). Vergangene Mails werden nicht rückwirkend gelesen.</p>
     <label class="small"><input type="checkbox" name="clear_password" value="1"> gespeichertes Passwort löschen</label>
   </div>
 

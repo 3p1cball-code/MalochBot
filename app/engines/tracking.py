@@ -6,7 +6,7 @@ import email
 import imaplib
 import re
 import unicodedata
-from datetime import datetime
+from datetime import datetime, date
 from email.header import decode_header, make_header
 from email.utils import parsedate_to_datetime
 
@@ -142,7 +142,7 @@ def _list_folders(client):
 
 
 def _scan(client, jobs=None):
-    since_iso = db.get_setting("last_scan", "") or db.get_setting("mail_since", "2026-07-01")
+    since_iso = db.get_setting("last_scan", "") or date.today().isoformat()
     since = datetime.strptime(since_iso, "%Y-%m-%d").strftime("%d-%b-%Y")
     configured = db.get_setting("mail_folders", "INBOX")
     address = (db.get_setting("mail_email", "") or "").lower()
