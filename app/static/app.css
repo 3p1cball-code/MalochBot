@@ -395,3 +395,8 @@ header.nav .brand img.mark { display: block; width: 26px; height: 26px; border-r
 
 .status-checks .chk-dot { width: 9px; height: 9px; border-radius: 2px; display: inline-block; margin-right: 1px; }
 .status-checks input { width: 15px; height: 15px; }
+
+/* Dokumente: Bewertung in eigener, vollbreiter Zeile */
+.eval-row > td { background: var(--panel-2); }
+.eval-box { margin-top: 8px; }
+.eval-box pre { margin: 0; white-space: pre-wrap; word-break: break-word; font-family: inherit; font-size: 13.5px; line-height: 1.6; }

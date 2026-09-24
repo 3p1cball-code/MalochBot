@@ -39,7 +39,7 @@
       </select>
     </div>
   </header>
-  <main class="container{% if path == '/' %} wide{% endif %}">
+  <main class="container{% if path == '/' or path.startswith('/documents') or path.startswith('/stats') %} wide{% endif %}">
     <div id="runbar" class="runbar" hidden></div>
     {% if not setup_done and request.url.path != "/settings" %}
     <div class="banner">

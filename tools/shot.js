@@ -13,11 +13,17 @@ const [, , url, out, w, h, mode] = process.argv;
   });
   await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
   await page.waitForTimeout(900);
-  if (mode && mode.startsWith("click:")) {
+  if (mode && mode.startsWith("clickfull:")) {
+    await page.click(mode.slice(10));
+    await page.waitForTimeout(700);
+    await page.screenshot({ path: out, fullPage: true });
+  } else if (mode && mode.startsWith("click:")) {
     await page.click(mode.slice(6));
     await page.waitForTimeout(700);
+    await page.screenshot({ path: out });
+  } else {
+    await page.screenshot({ path: out, fullPage: mode === "full" });
   }
-  await page.screenshot({ path: out, fullPage: mode === "full" });
   await browser.close();
   console.log("saved", out);
 })().catch((err) => {

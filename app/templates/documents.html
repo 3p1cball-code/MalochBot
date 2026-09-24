@@ -23,7 +23,7 @@
 {% if group %}
 <h2>{{ doc_labels[kind] }} <span class="muted small">({{ group|length }})</span></h2>
 <div class="table-wrap" style="margin-bottom:18px"><table class="table">
-  <tr><th>{{ t('docs.file') }}</th><th>{{ t('docs.kind') }}</th><th>{{ t('docs.evaluation') }}</th><th></th></tr>
+  <tr><th>{{ t('docs.file') }}</th><th>{{ t('docs.kind') }}</th><th></th></tr>
   {% for d in group %}
   <tr>
     <td><a href="/documents/{{ d.id }}/download">{{ d.name }}</a><div class="small muted">v{{ d.version }} · {{ (d.size / 1024) | round(1) }} KB · {{ d.created_at[:10] }}</div></td>
@@ -34,19 +34,7 @@
         </select>
       </form>
     </td>
-    <td>
-      {% if d.notes %}
-      <details class="eval"><summary>{{ t('docs.show_eval') }}</summary>
-        <div class="eval-box" style="margin-top:8px"><pre>{{ d.notes }}</pre></div>
-      </details>
-      {% else %}<span class="muted small">—</span>{% endif %}
-    </td>
     <td style="white-space:nowrap">
-      <form method="post" action="/documents/{{ d.id }}/kind" class="inline-form">
-        <select name="kind" onchange="this.form.submit()">
-          {% for k in kinds %}<option value="{{ k }}" {% if d.kind == k %}selected{% endif %}>{{ doc_labels[k] }}</option>{% endfor %}
-        </select>
-      </form>
       <button class="btn btn-sm" type="button" onclick="mbDocEval({{ d.id }})">{{ t('docs.evaluate') }}</button>
       <button class="btn btn-sm" type="button" onclick="mbDocImprove({{ d.id }})">{{ t('docs.improve') }}</button>
       <form method="post" action="/documents/{{ d.id }}/delete" class="inline-form"
@@ -55,6 +43,15 @@
       </form>
     </td>
   </tr>
+  {% if d.notes %}
+  <tr class="eval-row">
+    <td colspan="3">
+      <details class="eval"><summary>{{ t('docs.show_eval') }}</summary>
+        <div class="eval-box"><pre>{{ d.notes }}</pre></div>
+      </details>
+    </td>
+  </tr>
+  {% endif %}
   {% endfor %}
 </table></div>
 {% endif %}
