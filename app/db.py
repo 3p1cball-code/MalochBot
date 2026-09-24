@@ -81,6 +81,13 @@ CREATE TABLE IF NOT EXISTS logs (
     level TEXT DEFAULT 'info',
     message TEXT DEFAULT ''
 );
+CREATE TABLE IF NOT EXISTS events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    job_id INTEGER NOT NULL,
+    ts TEXT DEFAULT '',
+    kind TEXT DEFAULT '',
+    text TEXT DEFAULT ''
+);
 CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
     value TEXT DEFAULT ''

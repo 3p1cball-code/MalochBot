@@ -66,16 +66,12 @@ function mbEsc(s) {
   const I18N = window.MB_I18N || {};
   const L = function (key, fallback) { return I18N[key] || fallback; };
 
-  const statusSel = document.getElementById("f-status");
-  statusList.forEach(function (s) {
-    const o = document.createElement("option");
-    o.value = s; o.textContent = labels[s] || s;
-    statusSel.appendChild(o);
-  });
+  const statusBoxes = Array.prototype.slice.call(document.querySelectorAll(".f-status"));
 
   function activeJobs() {
     const q = (document.getElementById("f-q").value || "").toLowerCase();
-    const status = document.getElementById("f-status").value;
+    const checkedStatus = {};
+    statusBoxes.forEach(function (c) { if (c.checked) checkedStatus[c.value] = 1; });
     const source = document.getElementById("f-source").value;
     const remote = document.getElementById("f-remote").value;
     const fit = parseInt(document.getElementById("f-fit").value || "0", 10);
@@ -86,7 +82,7 @@ function mbEsc(s) {
     let out = jobs.filter(function (j) {
       const blob = (j.company + " " + j.title + " " + (j.location || "") + " " + (j.rationale || "")).toLowerCase();
       if (q && blob.indexOf(q) === -1) return false;
-      if (status && j.status !== status) return false;
+      if (!checkedStatus[j.status]) return false;
       if (source && j.source !== source) return false;
       if (remote === "1" && !j.remote) return false;
       if (fit > 0 && (j.score || 0) < fit) return false;
@@ -139,18 +135,26 @@ function mbEsc(s) {
     if (j.company_url) links.push('<a class="btn btn-sm" href="' + mbEsc(j.company_url) + '" target="_blank" rel="noopener">' + L("company", "Unternehmen") + "</a>");
 
     const events = [];
-    if (j.found_at) events.push({ date: (j.found_at || "").slice(0, 10), kind: "gefunden", text: "Stelle gefunden" });
+    function addEntry(displayDate, sortKey, kind, text) {
+      events.push({ date: displayDate || "", sort: sortKey || "", kind: kind, text: text });
+    }
+    if (j.found_at) addEntry((j.found_at || "").slice(0, 10), j.found_at, "gefunden", "Stelle gefunden");
     (j.emails || []).forEach(function (m) {
-      events.push({ date: (m.date || "").slice(0, 10), kind: "mail",
-        text: mbEsc(m.from_addr) + " – " + mbEsc(m.subject) });
+      const d = (m.date || "").slice(0, 10);
+      addEntry(d, d + "T12:00:00", "mail", mbEsc(m.from_addr) + " – " + mbEsc(m.subject));
+    });
+    (j.events || []).forEach(function (e) {
+      const d = (e.date || "").slice(0, 10);
+      addEntry(d, e.ts || (d + "T12:30:00"), "status", mbEsc(e.text));
     });
     if (j.phase) {
-      events.push({ date: (j.response_at || "").slice(0, 10), kind: "phase",
-        text: "Status: <strong>" + mbEsc(j.phase) + "</strong>" + (j.app_notes ? " – " + mbEsc(j.app_notes) : "") });
+      const d = (j.response_at || "").slice(0, 10);
+      addEntry(d, (j.response_at || "") + "T13:00:00", "phase",
+        "Status: <strong>" + mbEsc(j.phase) + "</strong>" + (j.app_notes ? " – " + mbEsc(j.app_notes) : ""));
     }
     events.sort(function (a, b) {
-      if (!a.date) return 1; if (!b.date) return -1;
-      return a.date < b.date ? -1 : (a.date > b.date ? 1 : 0);
+      if (!a.sort) return 1; if (!b.sort) return -1;
+      return a.sort < b.sort ? -1 : (a.sort > b.sort ? 1 : 0);
     });
     const timeline = events.map(function (e) {
       return '<li class="tl-' + e.kind + '"><span class="tl-date">' + (e.date || "–") + "</span>" +
@@ -198,16 +202,18 @@ function mbEsc(s) {
     renderList();
   }
 
-  ["f-q", "f-status", "f-source", "f-remote", "f-fit", "f-from", "f-to", "f-sort"].forEach(function (id) {
+  ["f-q", "f-source", "f-remote", "f-fit", "f-from", "f-to", "f-sort"].forEach(function (id) {
     const el = document.getElementById(id);
     el.addEventListener("input", renderList);
     el.addEventListener("change", renderList);
   });
+  statusBoxes.forEach(function (el) { el.addEventListener("change", renderList); });
 
   window.mbResetFilters = function () {
-    ["f-q", "f-status", "f-source", "f-remote", "f-from", "f-to"].forEach(function (id) {
+    ["f-q", "f-source", "f-remote", "f-from", "f-to"].forEach(function (id) {
       document.getElementById(id).value = "";
     });
+    statusBoxes.forEach(function (c) { c.checked = true; });
     document.getElementById("f-fit").value = window.MB_FIT_THRESHOLD || 0;
     document.getElementById("f-sort").value = "found";
     renderList();

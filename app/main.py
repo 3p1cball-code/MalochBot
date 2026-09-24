@@ -104,8 +104,15 @@ def home(request: Request):
     by_job = {}
     for mail in emails:
         by_job.setdefault(mail["job_id"], []).append(mail)
+    events = db.query("SELECT job_id, ts, kind, text FROM events ORDER BY ts")
+    events_by_job = {}
+    for ev in events:
+        events_by_job.setdefault(ev["job_id"], []).append(
+            {"date": (ev["ts"] or "")[:10], "ts": ev["ts"] or "",
+             "kind": ev["kind"], "text": ev["text"]})
     for row in rows:
         row["emails"] = by_job.get(row["id"], [])
+        row["events"] = events_by_job.get(row["id"], [])
         if row.get("cover_letter"):
             row["cover_letter_name"] = os.path.basename(row["cover_letter"])
     sources = sorted({r["source"] for r in rows if r["source"]})
@@ -134,6 +141,10 @@ def jobs_redirect():
 def job_set_status(job_id: int, status: str = Form(...), note: str = Form("")):
     if status in config.JOB_STATUSES:
         db.execute("UPDATE jobs SET status=? WHERE id=?", (status, job_id))
+        label = config.STATUS_LABELS.get(status, status)
+        text = "Status: " + label + ((" – " + note.strip()) if note.strip() else "")
+        db.execute("INSERT INTO events(job_id, ts, kind, text) VALUES(?,?,?,?)",
+                   (job_id, db.now_iso(), "status", text))
         if status == "beworben" and not db.one("SELECT id FROM applications WHERE job_id=?", (job_id,)):
             db.execute("INSERT INTO applications(job_id, phase, notes, channel, updated_at) "
                        "VALUES(?,?,?,?,?)", (job_id, "Ohne Rueckmeldung", note, "manuell", db.now_iso()))

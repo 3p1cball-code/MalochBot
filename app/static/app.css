@@ -385,3 +385,13 @@ header.nav button.navlink.active { background: rgba(255,255,255,.16); color: #ff
 
 /* Logo im Header */
 header.nav .brand img.mark { display: block; width: 26px; height: 26px; border-radius: 6px; background: none; box-shadow: none; }
+
+.timeline .tl-status::before { background: #f59e0b; }
+
+/* Status-Filter als Checkboxen */
+.status-checks { display: flex; flex-wrap: wrap; gap: 6px 14px; padding-top: 3px; }
+.status-checks .chk { display: flex; align-items: center; gap: 5px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.status-checks input { width: auto; }
+
+.status-checks .chk-dot { width: 9px; height: 9px; border-radius: 2px; display: inline-block; margin-right: 1px; }
+.status-checks input { width: 15px; height: 15px; }
