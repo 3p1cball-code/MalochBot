@@ -141,7 +141,7 @@ def jobs_redirect():
 @app.post("/jobs/{job_id}/status")
 def job_set_status(job_id: int, status: str = Form(...), note: str = Form("")):
     if status in config.JOB_STATUSES:
-        db.execute("UPDATE jobs SET status=? WHERE id=?", (status, job_id))
+        db.execute("UPDATE jobs SET status=?, manual=1 WHERE id=?", (status, job_id))
         label = config.STATUS_LABELS.get(status, status)
         text = "Status: " + label + ((" – " + note.strip()) if note.strip() else "")
         db.execute("INSERT INTO events(job_id, ts, kind, text) VALUES(?,?,?,?)",
@@ -149,6 +149,14 @@ def job_set_status(job_id: int, status: str = Form(...), note: str = Form("")):
         if status == "beworben" and not db.one("SELECT id FROM applications WHERE job_id=?", (job_id,)):
             db.execute("INSERT INTO applications(job_id, phase, notes, channel, updated_at) "
                        "VALUES(?,?,?,?,?)", (job_id, "Ohne Rueckmeldung", note, "manuell", db.now_iso()))
+    return RedirectResponse("/?job=%d" % job_id, status_code=303)
+
+
+@app.post("/jobs/{job_id}/unlock")
+def job_unlock(job_id: int):
+    db.execute("UPDATE jobs SET manual=0 WHERE id=?", (job_id,))
+    db.execute("INSERT INTO events(job_id, ts, kind, text) VALUES(?,?,?,?)",
+               (job_id, db.now_iso(), "status", "Automatische Status-Updates wieder aktiviert"))
     return RedirectResponse("/?job=%d" % job_id, status_code=303)
 
 

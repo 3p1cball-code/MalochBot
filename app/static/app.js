@@ -170,6 +170,7 @@ function mbEsc(s) {
       '<p class="subtitle" style="margin-top:2px"><strong>' + mbEsc(j.company) + "</strong>" +
         (j.location ? " · " + mbEsc(j.location) : "") + (j.remote ? ' · <span class="remote">remote</span>' : "") + "</p>" +
       '<div class="filters" style="margin-bottom:12px">' + badge +
+        (j.manual ? '<span class="tag" style="border-color:#f59e0b;color:#b45309">manuell gesetzt</span>' : "") +
         (j.score ? '<span class="pill">Fit ' + j.score + (j.fit ? " · " + mbEsc(j.fit) : "") + "</span>" : "") +
         '<span class="tag">Quelle: ' + mbEsc(j.source) + "</span>" +
         (j.published_at ? '<span class="tag">Veröffentlicht: ' + mbEsc(j.published_at) + "</span>" : "") +
@@ -187,6 +188,8 @@ function mbEsc(s) {
         '<div class="field"><label>' + L("statuschange", "Status") + '</label><select name="status">' + statusOptions + "</select></div>" +
         '<div class="field" style="flex:1;min-width:160px"><label>' + L("notec", "Notiz") + '</label><input name="note" placeholder="' + L("optional", "optional") + '"></div>' +
         '<button class="btn btn-primary" type="submit">' + L("save", "Speichern") + "</button></form>" +
+      (j.manual ? '<form method="post" action="/jobs/' + j.id + '/unlock" class="inline-form" style="margin-top:8px">' +
+        '<button class="btn btn-sm" type="submit">Automatische Status-Updates wieder aktivieren</button></form>' : "") +
       '<div style="margin-top:16px">' +
         '<div class="field" style="margin-bottom:10px;max-width:260px"><label>Sprache des Anschreibens</label>' +
           '<select id="cover-lang">' +

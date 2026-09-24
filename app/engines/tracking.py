@@ -236,8 +236,13 @@ def run_tracking(run_id: int, model: str = "") -> dict:
         if not isinstance(jid, int):
             continue
         phase = item.get("phase", "Ohne Rueckmeldung")
-        job = db.one("SELECT id, status FROM jobs WHERE id=?", (jid,))
+        job = db.one("SELECT id, status, manual FROM jobs WHERE id=?", (jid,))
         if not job:
+            continue
+
+        # Manuell gesetzter Status wird nie automatisch ueberschrieben.
+        if job.get("manual"):
+            logbus.log(run_id, "info", "Job #%d: Status manuell gesetzt - bleibt unveraendert." % jid)
             continue
 
         # Ohne Rueckmeldung ist KEIN Beweis fuer eine Bewerbung -> nur "gefunden".
