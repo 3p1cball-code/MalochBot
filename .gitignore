@@ -32,3 +32,8 @@ _shot*.png
 _bp/
 _brave*/
 Screenshot_*.png
+
+# temporaere Bilder
+_*.png
+_doc*.png
+_arb*.png
