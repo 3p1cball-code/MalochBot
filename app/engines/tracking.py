@@ -292,6 +292,8 @@ def run_tracking(run_id: int, model: str = "") -> dict:
         job = db.one("SELECT id, status, manual FROM jobs WHERE id=?", (jid,))
         if not job:
             continue
+        app_row = db.one("SELECT phase FROM applications WHERE job_id=?", (jid,))
+        prev_phase = app_row["phase"] if app_row else ""
 
         # Manuell gesetzter Status wird nie automatisch ueberschrieben.
         if job.get("manual"):
@@ -327,6 +329,11 @@ def run_tracking(run_id: int, model: str = "") -> dict:
                 "VALUES(?,?,?,?,?,?)",
                 (jid, phase, antwort, item.get("status_text", ""), "mail", db.now_iso()))
         updated += 1
+        if phase != prev_phase:
+            note = item.get("status_text", "")
+            db.execute("INSERT INTO events(job_id, ts, kind, text) VALUES(?,?,?,?)",
+                       (jid, db.now_iso(), "status",
+                        "Status (Mail): " + phase + ((" – " + note) if note else "")))
         logbus.log(run_id, "info", "Status: Job #%d -> %s (%s)" % (jid, final, phase))
 
     db.set_setting("last_scan", datetime.now().strftime("%Y-%m-%d"))

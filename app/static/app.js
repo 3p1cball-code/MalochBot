@@ -149,11 +149,6 @@ function mbEsc(s) {
       const d = (e.date || "").slice(0, 10);
       addEntry(d, e.ts || (d + "T12:30:00"), "status", mbEsc(e.text));
     });
-    if (j.phase) {
-      const d = (j.response_at || "").slice(0, 10);
-      addEntry(d, (j.response_at || "") + "T13:00:00", "phase",
-        "Status: <strong>" + mbEsc(j.phase) + "</strong>" + (j.app_notes ? " – " + mbEsc(j.app_notes) : ""));
-    }
     events.sort(function (a, b) {
       if (!a.sort) return 1; if (!b.sort) return -1;
       return a.sort < b.sort ? -1 : (a.sort > b.sort ? 1 : 0);
