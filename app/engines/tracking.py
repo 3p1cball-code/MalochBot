@@ -115,6 +115,25 @@ def _is_sent(folder: str) -> bool:
     return any(k in f for k in ("sent", "gesendet", "versenden", "outbox"))
 
 
+def _clean_phase(value) -> str:
+    text = (str(value) if value is not None else "").strip()
+    norm = (text.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue")
+                .replace("Ä", "ae").replace("Ö", "oe").replace("Ü", "ue").replace("ß", "ss"))
+    if norm.lower() in ("ohne rueckmeldung", "ohne ruckmeldung", ""):
+        return "Ohne Rueckmeldung"
+    for key in config.PHASE_TO_STATUS:
+        if key.lower() == norm.lower():
+            return key
+    return "Ohne Rueckmeldung"
+
+
+def _clean_date(value) -> str:
+    text = (str(value) if value is not None else "").strip()
+    if re.match(r"^\d{4}-\d{2}-\d{2}$", text):
+        return text
+    return ""
+
+
 def _connect():
     provider = db.get_setting("mail_provider", "")
     host = db.get_setting("mail_host", "")
@@ -268,7 +287,8 @@ def run_tracking(run_id: int, model: str = "") -> dict:
         jid = item.get("id")
         if not isinstance(jid, int):
             continue
-        phase = item.get("phase", "Ohne Rueckmeldung")
+        phase = _clean_phase(item.get("phase"))
+        antwort = _clean_date(item.get("antwort_am"))
         job = db.one("SELECT id, status, manual FROM jobs WHERE id=?", (jid,))
         if not job:
             continue
@@ -280,7 +300,7 @@ def run_tracking(run_id: int, model: str = "") -> dict:
 
         # Ohne Rueckmeldung ist KEIN Beweis fuer eine Bewerbung -> nur "gefunden".
         if phase == "Ohne Rueckmeldung":
-            if job["status"] not in ("beworben", "interview", "angebot", "abgelehnt", "vorgemerkt"):
+            if job["status"] in ("beworben", "gefunden"):
                 db.execute("UPDATE jobs SET status='gefunden' WHERE id=?", (jid,))
             continue
 
@@ -300,14 +320,12 @@ def run_tracking(run_id: int, model: str = "") -> dict:
         if existing:
             db.execute(
                 "UPDATE applications SET phase=?, response_at=?, notes=?, updated_at=? WHERE job_id=?",
-                (phase, item.get("antwort_am", ""), item.get("status_text", ""),
-                 db.now_iso(), jid))
+                (phase, antwort, item.get("status_text", ""), db.now_iso(), jid))
         else:
             db.execute(
                 "INSERT INTO applications(job_id, phase, response_at, notes, channel, updated_at) "
                 "VALUES(?,?,?,?,?,?)",
-                (jid, phase, item.get("antwort_am", ""), item.get("status_text", ""),
-                 "mail", db.now_iso()))
+                (jid, phase, antwort, item.get("status_text", ""), "mail", db.now_iso()))
         updated += 1
         logbus.log(run_id, "info", "Status: Job #%d -> %s (%s)" % (jid, final, phase))
 
