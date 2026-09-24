@@ -49,28 +49,37 @@ ist die Stufe, auf der die meisten aufhören — und auf der andere gerade erst 
 
 Der Bot lief zuverlässig, die Ergebnisse stapelten sich in Ordnern. Nach mehreren Läufen
 passierte, was immer passiert: Ab dem zehnten Durchlauf verliert man den Überblick. Welche
-Stelle war das noch? Was ist daraus geworden? Kam überhaupt eine Antwort? Ein Blick in den
-Ordner machte das Problem schonungslos klar: Das Ganze funktioniert, aber es ist nur für
-jemanden geeignet, der selbst technisch denkt. Für alle anderen ist es eine Sammlung von
-Dateien, in denen niemand etwas findet. Der Nutzen war da — aber er war zu versteckt, um
-wirklich nützlich zu sein.
+Stelle war das noch? Worauf habe ich mich beworben? Was ist daraus geworden? Kam überhaupt
+eine Antwort? Der Nutzen war da — aber er versteckte sich in einer wachsenden Zahl von
+Dateien.
 
-Hier kippt die Aufgabenstellung. Es geht nicht mehr darum, noch eine Analyse hinzuzufügen.
-Es geht darum, die Fäden zusammenzuziehen.
+## Prozessstufe vier: Erst Ordnung schaffen — Tabelle und Skript
 
-## Prozessstufe vier: Eine Anwendung, die zusammenführt
+Der erste Reflex war nicht Technik, sondern Ordnung. Ein kleines Aufräumskript sammelte die
+verstreuten Ergebnisse ein und goss sie in eine einzige Tabelle: jede Bewerbung mit Firma,
+Position, Datum und Stand. Auf einen Blick ließ sich nun sehen, wo man sich beworben hatte
+und was daraus geworden war. Das war ein echter Fortschritt — aber es blieb eine Tabelle,
+die man pflegen muss, und daneben lagen die Ordner, die Skripte und die Dateien unverändert
+herum. Die Ordnung betraf die Bewerbungen, nicht das Werkzeug selbst.
 
-MalochBot ist die Antwort auf diesen Moment. Es zieht alle Teile des Prozesses an eine
-Stelle: gefundene Stellen, Bewerbungen, Unterlagen, die Verbindung zum eigenen Postfach und
-den jeweils aktuellen Stand. Es sortiert nicht nur, es erzählt. Zu jeder Stelle lässt sich
-der Verlauf nachlesen — wann sie gefunden wurde, welcher Kontakt kam, wann sich etwas
-geändert hat. Aus einer Dateiablage wird eine übersichtliche, filterbare Oberfläche, die
-man auch dann noch versteht, wenn man wochenlang nicht hineingeschaut hat.
+## Prozessstufe fünf: Eine Anwendung, die zusammenführt
+
+Jetzt wird der eigentliche Engpass sichtbar: Nicht die Jobs und nicht die Statusangaben
+waren das Problem, sondern der Ordner selbst, die Skripte und die Dateien darin. Das Ganze
+funktionierte, aber es war nur für jemanden geeignet, der selbst technisch denkt. Für alle
+anderen war es eine Sammlung von Dateien, in denen niemand etwas findet.
+
+MalochBot ist die Antwort darauf. Es zieht alle Teile des Prozesses an eine Stelle: gefundene
+Stellen, Bewerbungen, Unterlagen, die Verbindung zum eigenen Postfach und den jeweils
+aktuellen Stand. Es sortiert nicht nur, es erzählt. Zu jeder Stelle lässt sich der Verlauf
+nachlesen — wann sie gefunden wurde, welcher Kontakt kam, wann sich etwas geändert hat. Aus
+einer Dateiablage wird eine übersichtliche, filterbare Oberfläche, die man auch dann noch
+versteht, wenn man wochenlang nicht hineingeschaut hat.
 
 Der entscheidende Sprung ist nicht die zusätzliche Funktion, sondern die veränderte
 Perspektive: vom Werkzeug für einen Techniker zu einem Produkt für einen Menschen.
 
-## Prozessstufe fünf: Auslagern und veröffentlichen
+## Prozessstufe sechs: Auslagern und veröffentlichen
 
 Die nächste Stufe ist keine neue Funktion, sondern eine Frage der Verantwortung. Zugangsdaten
 und Unterlagen gehören nicht in ein Projekt, das man weitergibt; sie werden sauber getrennt
