@@ -18,17 +18,6 @@ ATS_DOMAINS = (
     "comeet", "breezy", "smartrecruiters", "lever.co", "workday", "onlyfy",
     "homerun", "dvinci", "hrworks", "umantis", "join.com",
 )
-NOISE = re.compile(
-    r"(vaia\.com|linkedin\.com|xing\.com|indeed\.|stepstone|glassdoor|kununu|"
-    r"arbeitnow|freehire|jobleads|jobgether|himalayas|wellfound|startup\.jobs|"
-    r"studysmarter|newsletter|jobalerts|jobs-noreply|updates-noreply|talent\b|"
-    r"jobteaser|substack)", re.I)
-APPLY_NOTICE = re.compile(
-    r"(bewerbung wurde.{0,40}(gesendet|verschickt|uebermittelt|übermittelt|eingereicht)|"
-    r"(deine|ihre) bewerbung (bei|wurde|an )|bewerbung bei |bewerbung eingereicht|"
-    r"your application (to|has been|was sent|for)|thank you for applying|"
-    r"we have received your application|wir haben (deine|ihre) bewerbung|"
-    r"application submitted|applied to )", re.I)
 SHORT_TOKENS = {"hse", "indg", "snocks"}
 STOP = {
     "gmbh", "se", "ag", "inc", "ltd", "llc", "the", "and", "co", "company",
@@ -41,7 +30,12 @@ PROMPT = """Du wertest die Bewerbungs-Mailbox aus.
 
 Angehaengt ist context.json mit:
 - "jobs": Bewerbungen (id, firma, position).
-- "mails": relevante E-Mails (date, from, subject, body).
+- "mails": saemtliche E-Mails aus Ein- und Ausgang (date, direction, from, to,
+  subject, body). "direction" ist "in" (empfangen) oder "out" (von der Person gesendet).
+
+Es sind ALLE Mails enthalten - viele davon betreffen keine Bewerbung (Newsletter,
+Job-Alerts, privates). Ignoriere solche. Ordne eine Mail nur dann einem Job zu, wenn
+Firma/Absender/Empfaenger/Kontext eindeutig passen.
 
 Ordne JEDEM Job einen Status zu, ausschliesslich anhand der Mails.
 
@@ -113,17 +107,6 @@ def _tokens(jobs) -> set:
     return tokens
 
 
-def _relevant(blob: str, tokens: set) -> bool:
-    if APPLY_NOTICE.search(blob):
-        return True
-    if NOISE.search(blob):
-        return False
-    for tok in tokens:
-        if re.search(r"\b%s\b" % re.escape(tok), blob):
-            return True
-    return any(a in blob for a in ATS_DOMAINS)
-
-
 def _is_sent(folder: str) -> bool:
     f = (folder or "").lower()
     return any(k in f for k in ("sent", "gesendet", "versenden", "outbox"))
@@ -158,8 +141,7 @@ def _list_folders(client):
     return names
 
 
-def _scan(client, jobs):
-    tokens = _tokens(jobs)
+def _scan(client, jobs=None):
     since_iso = db.get_setting("last_scan", "") or db.get_setting("mail_since", "2026-07-01")
     since = datetime.strptime(since_iso, "%Y-%m-%d").strftime("%d-%b-%Y")
     configured = db.get_setting("mail_folders", "INBOX")
@@ -190,8 +172,6 @@ def _scan(client, jobs):
             subj = _decode(msg.get("Subject"))
             frm = _decode(msg.get("From"))
             to = _decode(msg.get("To"))
-            if not _relevant(_norm(frm + " " + to + " " + subj), tokens):
-                continue
             try:
                 iso = parsedate_to_datetime(msg.get("Date")).date().isoformat()
             except Exception:
@@ -199,7 +179,7 @@ def _scan(client, jobs):
             is_out = sent or bool(address and address in frm.lower())
             found.append({"date": iso, "folder": folder, "from": frm, "to": to,
                           "direction": "out" if is_out else "in",
-                          "subject": subj, "body": _body(msg)})
+                          "subject": subj, "body": _body(msg, 500)})
     found.sort(key=lambda m: m["date"])
     return found
 
@@ -240,22 +220,35 @@ def run_tracking(run_id: int, model: str = "") -> dict:
             client.logout()
         except Exception:
             pass
-    logbus.log(run_id, "info", "%d relevante Mails gefunden." % len(mails))
+    logbus.log(run_id, "info", "%d Mails gelesen (Ein-/Ausgang)." % len(mails))
     _store_emails(mails, jobs, run_id)
 
-    context = {"jobs": jobs, "mails": mails}
     import json
-    context_path = config.DATA_DIR / "context.json"
-    context_path.write_text(json.dumps(context, ensure_ascii=False, indent=1), encoding="utf-8")
-
-    logbus.log(run_id, "info", "Bewerte Status mit dem Modell ...")
-    rc, out = oc.run(PROMPT, model=model, run_id=run_id, attach=[str(context_path)])
-    data = oc.extract_json(out)
-    if not data:
+    BATCH = 60
+    batches = [mails[i:i + BATCH] for i in range(0, len(mails), BATCH)]
+    merged = {}
+    for idx, batch in enumerate(batches, 1):
+        context_path = config.DATA_DIR / ("context_%d.json" % idx)
+        context_path.write_text(
+            json.dumps({"jobs": jobs, "mails": batch}, ensure_ascii=False), encoding="utf-8")
+        logbus.log(run_id, "info", "Bewerte Mails %d/%d (%d Mails) ..." % (idx, len(batches), len(batch)))
+        rc, out = oc.run(PROMPT, model=model, run_id=run_id, attach=[str(context_path)])
+        data = oc.extract_json(out)
+        if not data:
+            logbus.log(run_id, "warn", "Batch %d: keine auswertbare Antwort." % idx)
+            continue
+        for item in data.get("jobs", []):
+            jid = item.get("id")
+            if not isinstance(jid, int):
+                continue
+            cur = merged.get(jid)
+            if cur is None or (item.get("antwort_am") or "") >= (cur.get("antwort_am") or ""):
+                merged[jid] = item
+    if not merged:
         raise RuntimeError("Keine auswertbare JSON-Antwort vom Modell erhalten.")
 
     updated = 0
-    for item in data.get("jobs", []):
+    for item in merged.values():
         jid = item.get("id")
         if not isinstance(jid, int):
             continue
