@@ -23,6 +23,12 @@ NOISE = re.compile(
     r"arbeitnow|freehire|jobleads|jobgether|himalayas|wellfound|startup\.jobs|"
     r"studysmarter|newsletter|jobalerts|jobs-noreply|updates-noreply|talent\b|"
     r"jobteaser|substack)", re.I)
+APPLY_NOTICE = re.compile(
+    r"(bewerbung wurde (verschickt|gesendet|uebermittelt|übermittelt)|"
+    r"deine bewerbung (bei|wurde)|bewerbung bei |bewerbung eingereicht|"
+    r"your application (to|has been|was sent|for)|thank you for applying|"
+    r"we have received your application|wir haben (deine|ihre) bewerbung|"
+    r"application submitted|applied to )", re.I)
 SHORT_TOKENS = {"hse", "indg", "snocks"}
 STOP = {
     "gmbh", "se", "ag", "inc", "ltd", "llc", "the", "and", "co", "company",
@@ -53,6 +59,8 @@ Eine gesendete Bewerbung (direction "out") an ein Unternehmen belegt, dass bewor
 Regeln:
 - Neueste maßgebliche Mail entscheidet. Bestaetigung + spaetere Absage => "Absage".
 - Absagen von Termin-/Eingangsmails unterscheiden; "leider" allein ist keine Absage.
+- Auch eine Benachrichtigung von Jobboersen (LinkedIn/XING), dass eine Bewerbung
+  verschickt/gesendet wurde, belegt eine Bewerbung => Phase "Beworben".
 - Nur zuordnen, wenn Firma/Absender/Empfaenger/Kontext eindeutig passen.
 
 Antworte AUSSCHLIESSLICH mit JSON:
@@ -106,6 +114,8 @@ def _tokens(jobs) -> set:
 
 
 def _relevant(blob: str, tokens: set) -> bool:
+    if APPLY_NOTICE.search(blob):
+        return True
     if NOISE.search(blob):
         return False
     for tok in tokens:
