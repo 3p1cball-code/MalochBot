@@ -59,6 +59,25 @@ def run(prompt: str, model: str = "", cwd: str = "", attach=None, run_id=None,
     return proc.returncode, "\n".join(lines)
 
 
+def clean_text(text: str) -> str:
+    """Entfernt opencode-Chrome (Kopfzeile, Werkzeug-/Statuszeilen) aus Fliesstext-Ausgaben."""
+    out = []
+    for line in (text or "").splitlines():
+        stripped = line.strip()
+        if re.match(r"^>\s*(build|·)", stripped):
+            continue
+        if stripped[:1] in ("⚙", "%") or stripped.startswith("✗"):
+            continue
+        if stripped.startswith("> build"):
+            continue
+        out.append(line.rstrip())
+    while out and not out[0].strip():
+        out.pop(0)
+    while out and not out[-1].strip():
+        out.pop()
+    return "\n".join(out)
+
+
 def extract_json(text: str):
     """Robuste JSON-Extraktion: findet das (letzte) gueltige Objekt mit 'jobs'.
 

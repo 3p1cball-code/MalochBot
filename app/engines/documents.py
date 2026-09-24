@@ -167,7 +167,7 @@ def improve_document(doc_id: int, run_id: int, model: str = "", instruction: str
         instruction=(instruction.strip() or "keiner"))
     logbus.log(run_id, "info", "Erzeuge verbesserte Fassung von '%s' ..." % doc["name"])
     rc, out = oc.run(prompt, model=model, run_id=run_id)
-    improved = out.strip()
+    improved = oc.clean_text(out)
     if not improved:
         raise RuntimeError("Keine verbesserte Fassung erhalten.")
 
@@ -175,7 +175,7 @@ def improve_document(doc_id: int, run_id: int, model: str = "", instruction: str
     ext = ext.lower()
     if ext in (".pdf", ".docx"):
         target = config.UPLOAD_DIR / ("%s_verbessert.pdf" % stem)
-        if not text_to_pdf(improved, target):
+        if not text_to_pdf(improved, target, photo=_portrait_path()):
             target = config.UPLOAD_DIR / ("%s_verbessert.md" % stem)
             target.write_text(improved, encoding="utf-8")
     else:
@@ -236,37 +236,68 @@ def _find_fonts():
     return None, None
 
 
-def text_to_pdf(text: str, path) -> bool:
-    """Schreibt Markdown-aehnlichen Text als sauberes PDF (fpdf2, ohne LibreOffice)."""
+def _portrait_path() -> str:
+    doc = db.one("SELECT * FROM documents WHERE kind='portrait' ORDER BY created_at DESC LIMIT 1")
+    if not doc:
+        return ""
+    p = resolve_path(doc)
+    return p if os.path.exists(p) else ""
+
+
+def text_to_pdf(text: str, path, photo: str = "") -> bool:
+    """Setzt Markdown-aehnlichen Text als sauberes PDF (fpdf2, ohne LibreOffice)."""
     try:
         from fpdf import FPDF
     except Exception:
         return False
-    lines = []
-    for raw in (text or "").splitlines():
-        line = raw.rstrip()
-        stripped = line.strip()
-        if stripped.startswith("#"):
-            line = stripped.lstrip("#").strip()
-        lines.append(line)
-    body = "\n".join(lines).strip()
     reg, bold = _find_fonts()
+    has_bold = bool(reg and bold)
     pdf = FPDF(format="A4")
     pdf.set_auto_page_break(auto=True, margin=20)
-    pdf.set_margins(25, 22, 25)
+    left, top, right = 25, 20, 25
+    pdf.set_margins(left, top, right)
     pdf.add_page()
     if reg:
         pdf.add_font("body", "", reg)
         if bold:
             pdf.add_font("body", "B", bold)
-            pdf.set_font("body", size=11)
-            pdf.multi_cell(0, 6, body, markdown=True)
+    family = "body" if reg else "Helvetica"
+
+    def setfont(size, b=False):
+        pdf.set_font(family, "B" if (b and has_bold) else "", size)
+
+    top_y = top
+    if photo and os.path.exists(photo):
+        try:
+            pdf.image(photo, x=210 - right - 33, y=top, w=33)
+            top_y = top + 44
+        except Exception:
+            top_y = top
+    pdf.set_y(top_y)
+    content_w = 210 - left - right
+
+    for raw in (text or "").splitlines():
+        s = raw.rstrip().strip()
+        if not s:
+            pdf.ln(3.2)
+            continue
+        if s.startswith("### "):
+            setfont(11.5, True); pdf.multi_cell(content_w, 5.8, s[4:]); pdf.ln(1)
+        elif s.startswith("## "):
+            setfont(12.5, True); pdf.multi_cell(content_w, 6.2, s[3:]); pdf.ln(1.2)
+        elif s.startswith("# "):
+            setfont(14, True); pdf.multi_cell(content_w, 7, s[2:]); pdf.ln(1.5)
+        elif s.startswith("- ") or s.startswith("* "):
+            setfont(10.5)
+            pdf.set_x(left + 4)
+            pdf.multi_cell(content_w - 4, 5.2, "\u2022  " + s[2:], markdown=has_bold,
+                           new_x="LMARGIN", new_y="NEXT")
+            pdf.ln(0.6)
         else:
-            pdf.set_font("body", size=11)
-            pdf.multi_cell(0, 6, body.replace("**", ""))
-    else:
-        pdf.set_font("Helvetica", size=11)
-        pdf.multi_cell(0, 6, body.replace("**", "").encode("latin-1", "replace").decode("latin-1"))
+            setfont(10.5)
+            pdf.multi_cell(content_w, 5.2, s if has_bold else s.replace("**", ""),
+                           markdown=has_bold)
+            pdf.ln(1.2)
     pdf.output(str(path))
     return os.path.exists(path)
 
@@ -290,7 +321,7 @@ def generate_cover_letter(job_id: int, run_id: int, model: str = "", lang: str =
         db.execute("UPDATE jobs SET language=? WHERE id=?", (target_lang, job_id))
     logbus.log(run_id, "info", "Erzeuge Anschreiben (%s) fuer %s ..." % (target_lang, job["company"]))
     rc, out = oc.run(prompt, model=model, run_id=run_id)
-    return _save_cover_letter(job, out.strip(), run_id)
+    return _save_cover_letter(job, oc.clean_text(out), run_id)
 
 
 def _cover_md_path(job) -> "object":
@@ -298,14 +329,14 @@ def _cover_md_path(job) -> "object":
     return config.GENERATED_DIR / ("anschreiben_%s_%d.md" % (safe, job["id"]))
 
 
-def _save_cover_letter(job, text: str, run_id: int) -> str:
+def _save_cover_letter(job, text: str, run_id: int, photo: str = "") -> str:
     md_path = _cover_md_path(job)
     md_path.write_text(text, encoding="utf-8")
     html_path = md_path.with_suffix(".html")
     body = "<pre style='font-family:Arial;white-space:pre-wrap'>%s</pre>" % html_mod.escape(text)
     html_path.write_text("<html><body>%s</body></html>" % body, encoding="utf-8")
     pdf_path = md_path.with_suffix(".pdf")
-    made_pdf = text_to_pdf(text, pdf_path)
+    made_pdf = text_to_pdf(text, pdf_path, photo=photo or _portrait_path())
     result = str(pdf_path if made_pdf else (html_path if html_path.exists() else md_path))
     db.execute("UPDATE jobs SET cover_letter=? WHERE id=?", (result, job["id"]))
     logbus.log(run_id, "info", "Anschreiben gespeichert: %s" % os.path.basename(result))
@@ -357,7 +388,7 @@ def improve_cover_letter(job_id: int, feedback: str, run_id: int, model: str = "
     prompt = IMPROVE_COVER_PROMPT.format(lang_line=lang_line, feedback=feedback, letter=letter[:6000])
     logbus.log(run_id, "info", "Ueberarbeite Anschreiben gemaess Feedback ...")
     rc, out = oc.run(prompt, model=model, run_id=run_id)
-    text = out.strip()
+    text = oc.clean_text(out)
     if not text:
         raise RuntimeError("Keine ueberarbeitete Fassung erhalten.")
     return _save_cover_letter(job, text, run_id)

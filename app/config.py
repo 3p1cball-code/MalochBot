@@ -58,13 +58,14 @@ PHASE_TO_STATUS = {
 # Rang fuer "nicht herabstufen": hoeher = weiter im Prozess.
 STATUS_RANK = {"gefunden": 0, "vorgemerkt": 1, "beworben": 2, "interview": 3, "angebot": 4}
 
-DOC_KINDS = ["lebenslauf", "zeugnis", "arbeitsprobe", "referenzanschreiben", "zertifikat", "sonstiges"]
+DOC_KINDS = ["lebenslauf", "zeugnis", "arbeitsprobe", "referenzanschreiben", "portrait", "zertifikat", "sonstiges"]
 
 DOC_LABELS = {
     "lebenslauf": "Lebenslauf",
     "zeugnis": "Zeugnis",
     "arbeitsprobe": "Arbeitsprobe",
     "referenzanschreiben": "Referenzanschreiben",
+    "portrait": "Bewerbungsfoto",
     "zertifikat": "Zertifikat",
     "sonstiges": "Sonstiges",
 }
@@ -84,6 +85,7 @@ DOC_LABELS_EN = {
     "zeugnis": "Reference",
     "arbeitsprobe": "Work sample",
     "referenzanschreiben": "Reference cover letter",
+    "portrait": "Photo",
     "zertifikat": "Certificate",
     "sonstiges": "Other",
 }
