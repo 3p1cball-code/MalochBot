@@ -179,7 +179,7 @@ def _scan(client, jobs=None):
             is_out = sent or bool(address and address in frm.lower())
             found.append({"date": iso, "folder": folder, "from": frm, "to": to,
                           "direction": "out" if is_out else "in",
-                          "subject": subj, "body": _body(msg, 500)})
+                          "subject": subj, "body": _body(msg, 250)})
     found.sort(key=lambda m: m["date"])
     return found
 
@@ -224,7 +224,7 @@ def run_tracking(run_id: int, model: str = "") -> dict:
     _store_emails(mails, jobs, run_id)
 
     import json
-    BATCH = 60
+    BATCH = 100
     batches = [mails[i:i + BATCH] for i in range(0, len(mails), BATCH)]
     merged = {}
     for idx, batch in enumerate(batches, 1):
