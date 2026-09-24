@@ -374,7 +374,7 @@ def documents_crop(request: Request, doc_id: int):
 
 @app.post("/documents/{doc_id}/crop")
 def documents_crop_apply(doc_id: int, x: int = Form(...), y: int = Form(...),
-                         w: int = Form(...), h: int = Form(...)):
+                         w: int = Form(...), h: int = Form(...), rotate: int = Form(0)):
     doc = db.one("SELECT * FROM documents WHERE id=?", (doc_id,))
     if not doc:
         return RedirectResponse("/documents", status_code=303)
@@ -385,6 +385,9 @@ def documents_crop_apply(doc_id: int, x: int = Form(...), y: int = Form(...),
     try:
         from PIL import Image, ImageOps
         img = ImageOps.exif_transpose(Image.open(path))
+        rot = int(rotate) % 360
+        if rot in (90, 180, 270):
+            img = img.rotate(-rot, expand=True)
         left, top = max(0, x), max(0, y)
         right = min(img.width, x + w)
         bottom = min(img.height, y + h)
@@ -398,13 +401,13 @@ def documents_crop_apply(doc_id: int, x: int = Form(...), y: int = Form(...),
             img = img.convert("RGB")
         img.save(str(out))
     except Exception as exc:
-        logbus.log(None, "error", "Zuschneiden fehlgeschlagen: %s" % exc)
+        logbus.log(None, "error", "Bildbearbeitung fehlgeschlagen: %s" % exc)
         return RedirectResponse("/documents", status_code=303)
     db.execute("INSERT INTO documents(name, kind, path, size, version, created_at, notes) "
                "VALUES(?,?,?,?,?,?,?)",
                (out.name, doc["kind"], str(out), out.stat().st_size,
                 (doc["version"] or 1) + 1, db.now_iso(),
-                "Zuschnitt von %s" % doc["name"]))
+                "Zuschnitt/Drehung von %s" % doc["name"]))
     return RedirectResponse("/documents", status_code=303)
 
 

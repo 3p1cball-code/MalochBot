@@ -54,7 +54,7 @@
     <td style="white-space:nowrap">
       {% set ext = d.name.lower().rsplit('.', 1)[-1] %}
       {% if ext in ['png', 'jpg', 'jpeg', 'webp'] %}
-      <a class="btn btn-sm" href="/documents/{{ d.id }}/crop">Zuschneiden</a>
+      <a class="btn btn-sm" href="/documents/{{ d.id }}/crop">Bearbeiten</a>
       {% endif %}
       <button class="btn btn-sm" type="button" onclick="mbDocEval({{ d.id }})">{{ t('docs.evaluate') }}</button>
       <button class="btn btn-sm" type="button" onclick="mbDocImprove({{ d.id }})">{{ t('docs.improve') }}</button>

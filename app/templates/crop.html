@@ -1,24 +1,27 @@
 {% extends "base.html" %}
-{% set page_title = "Bild zuschneiden" %}
+{% set page_title = "Bild bearbeiten" %}
 {% block content %}
-<h1>Bild zuschneiden</h1>
-<p class="subtitle">{{ doc.name }} · ziehen zum Verschieben, Regler zum Zoomen. Der Rahmen zeigt den Zuschnitt (Format 7:9 für Bewerbungsfotos).</p>
+<h1>Bild bearbeiten</h1>
+<p class="subtitle">{{ doc.name }} · drehen, ziehen (verschieben), zoomen. Der Rahmen zeigt den Zuschnitt (7:9 für Bewerbungsfotos).</p>
 
 <div class="crop-layout">
   <div>
-    <div id="frame" class="crop-frame">
-      <img id="cimg" src="{{ image_url }}" alt="" draggable="false">
+    <div id="frame" class="crop-frame"><canvas id="cimg"></canvas></div>
+    <div class="crop-controls">
+      <button class="btn btn-sm" type="button" onclick="mbRotate(-90)">&#8634; 90°</button>
+      <button class="btn btn-sm" type="button" onclick="mbRotate(90)">&#8635; 90°</button>
+      <label class="small" style="margin-left:8px">Zoom</label>
+      <input type="range" id="zoom" min="100" max="300" value="100" style="flex:1;max-width:180px">
     </div>
     <div class="crop-controls">
-      <label class="small">Zoom</label>
-      <input type="range" id="zoom" min="100" max="300" value="100" style="flex:1">
-      <button class="btn btn-primary" type="button" onclick="mbCropSave()">Zuschneiden &amp; speichern</button>
+      <button class="btn btn-primary" type="button" onclick="mbCropSave()">Speichern</button>
       <a class="btn" href="/documents">Abbrechen</a>
     </div>
   </div>
   <form id="cropform" method="post" action="/documents/{{ doc.id }}/crop" style="display:none">
     <input type="hidden" name="x" id="cx"><input type="hidden" name="y" id="cy">
     <input type="hidden" name="w" id="cw"><input type="hidden" name="h" id="ch">
+    <input type="hidden" name="rotate" id="crot" value="0">
   </form>
 </div>
 
@@ -27,19 +30,37 @@
 .crop-frame { position: relative; width: 315px; height: 405px; overflow: hidden; border: 2px solid var(--accent);
   border-radius: 4px; background: #111; cursor: grab; touch-action: none; }
 .crop-frame.dragging { cursor: grabbing; }
-.crop-frame img { position: absolute; user-select: none; -webkit-user-drag: none; }
-.crop-controls { display: flex; gap: 12px; align-items: center; margin-top: 14px; max-width: 560px; }
-.crop-controls input[type=range] { max-width: 200px; }
+.crop-frame canvas { position: absolute; user-select: none; }
+.crop-controls { display: flex; gap: 10px; align-items: center; margin-top: 12px; max-width: 620px; flex-wrap: wrap; }
 </style>
 
 <script>
 (function () {
   const Fw = 315, Fh = 405;
   const frame = document.getElementById("frame");
-  const img = document.getElementById("cimg");
+  const canvas = document.getElementById("cimg");
   const zoom = document.getElementById("zoom");
-  let natW = 0, natH = 0, base = 1, scale = 1, dx = 0, dy = 0;
+  const src = new Image();
+  let natW = 0, natH = 0, base = 1, scale = 1, dx = 0, dy = 0, rot = 0;
 
+  function drawRotated() {
+    if (rot % 180 === 0) { natW = src.naturalWidth; natH = src.naturalHeight; }
+    else { natW = src.naturalHeight; natH = src.naturalWidth; }
+    canvas.width = natW; canvas.height = natH;
+    const ctx = canvas.getContext("2d");
+    ctx.save();
+    ctx.translate(natW / 2, natH / 2);
+    ctx.rotate(rot * Math.PI / 180);
+    ctx.drawImage(src, -src.naturalWidth / 2, -src.naturalHeight / 2);
+    ctx.restore();
+  }
+  function fit() {
+    base = Math.max(Fw / natW, Fh / natH);
+    scale = base * (parseInt(zoom.value, 10) / 100);
+    dx = (Fw - natW * scale) / 2;
+    dy = (Fh - natH * scale) / 2;
+    render();
+  }
   function clamp() {
     const W = natW * scale, H = natH * scale;
     dx = Math.min(0, Math.max(Fw - W, dx));
@@ -47,20 +68,13 @@
   }
   function render() {
     clamp();
-    img.style.width = (natW * scale) + "px";
-    img.style.height = (natH * scale) + "px";
-    img.style.left = dx + "px";
-    img.style.top = dy + "px";
+    canvas.style.width = (natW * scale) + "px";
+    canvas.style.height = (natH * scale) + "px";
+    canvas.style.left = dx + "px";
+    canvas.style.top = dy + "px";
   }
-  function init() {
-    natW = img.naturalWidth || 1; natH = img.naturalHeight || 1;
-    base = Math.max(Fw / natW, Fh / natH);
-    scale = base;
-    dx = (Fw - natW * scale) / 2;
-    dy = (Fh - natH * scale) / 2;
-    render();
-  }
-  if (img.complete) init(); else img.addEventListener("load", init);
+  src.addEventListener("load", function () { drawRotated(); fit(); });
+  src.src = "{{ image_url }}";
 
   frame.addEventListener("pointerdown", function (e) {
     frame.setPointerCapture(e.pointerId);
@@ -77,9 +91,12 @@
     e.preventDefault();
   });
   zoom.addEventListener("input", function () {
-    scale = base * (parseInt(zoom.value, 10) / 100);
-    render();
+    scale = base * (parseInt(zoom.value, 10) / 100); render();
   });
+  window.mbRotate = function (deg) {
+    rot = (rot + deg + 360) % 360;
+    drawRotated(); fit();
+  };
   window.mbCropSave = function () {
     const s = scale;
     let x = Math.round((-dx) / s), y = Math.round((-dy) / s);
@@ -90,6 +107,7 @@
     document.getElementById("cy").value = y;
     document.getElementById("cw").value = w;
     document.getElementById("ch").value = h;
+    document.getElementById("crot").value = rot;
     document.getElementById("cropform").submit();
   };
 })();
