@@ -155,6 +155,15 @@ def evaluate_document(doc_id: int, run_id: int, model: str = "") -> str:
     return result
 
 
+def _unique_output(base: str, ext: str):
+    path = config.UPLOAD_DIR / (base + ext)
+    counter = 1
+    while path.exists():
+        path = config.UPLOAD_DIR / ("%s_%d%s" % (base, counter, ext))
+        counter += 1
+    return path
+
+
 def improve_document(doc_id: int, run_id: int, model: str = "", instruction: str = "") -> dict:
     doc = db.one("SELECT * FROM documents WHERE id=?", (doc_id,))
     if not doc:
@@ -174,12 +183,12 @@ def improve_document(doc_id: int, run_id: int, model: str = "", instruction: str
     stem, ext = os.path.splitext(doc["name"])
     ext = ext.lower()
     if ext in (".pdf", ".docx"):
-        target = config.UPLOAD_DIR / ("%s_verbessert.pdf" % stem)
+        target = _unique_output(stem + "_verbessert", ".pdf")
         if not text_to_pdf(improved, target, photo=_portrait_path()):
-            target = config.UPLOAD_DIR / ("%s_verbessert.md" % stem)
+            target = _unique_output(stem + "_verbessert", ".md")
             target.write_text(improved, encoding="utf-8")
     else:
-        target = config.UPLOAD_DIR / ("%s_verbessert.md" % stem)
+        target = _unique_output(stem + "_verbessert", ".md")
         target.write_text(improved, encoding="utf-8")
 
     new_id = db.execute(

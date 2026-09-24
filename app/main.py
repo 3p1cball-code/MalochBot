@@ -402,7 +402,12 @@ def documents_crop_apply(doc_id: int, x: int = Form(...), y: int = Form(...),
         img = img.crop((left, top, right, bottom))
         if ext.lower() == ".webp":
             ext = ".png"
-        out = config.UPLOAD_DIR / ("%s_zuschnitt%s" % (stem, ext))
+        base = "%s_bearbeitet" % stem
+        out = config.UPLOAD_DIR / ("%s%s" % (base, ext))
+        counter = 1
+        while out.exists():
+            out = config.UPLOAD_DIR / ("%s_%d%s" % (base, counter, ext))
+            counter += 1
         if ext.lower() in (".jpg", ".jpeg") and img.mode in ("RGBA", "P"):
             img = img.convert("RGB")
         img.save(str(out))
