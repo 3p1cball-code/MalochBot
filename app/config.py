@@ -50,6 +50,7 @@ STATUS_COLORS = {
 PHASE_TO_STATUS = {
     "Interview-Prozess": "interview",
     "Absage": "abgelehnt",
+    "Beworben": "beworben",
     "Eingangsbestaetigung": "beworben",
     "Warte auf Rueckmeldung": "beworben",
     "Ohne Rueckmeldung": "gefunden",

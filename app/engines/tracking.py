@@ -42,14 +42,18 @@ Ordne JEDEM Job einen Status zu, ausschliesslich anhand der Mails.
 Erlaubte Phasen (exakt so):
 - "Interview-Prozess": Einladung/Interview/aktiver Austausch, kein abschliessendes Nein.
 - "Absage": eindeutige Absage (auch Stelle besetzt, andere Kandidaten).
+- "Beworben": eine abgeschickte Bewerbung ist belegt (z. B. gesendete Mail an das
+  Unternehmen/Portal), aber noch keine Rueckmeldung.
 - "Eingangsbestaetigung": nur automatische/neutrale Eingangsbestaetigung.
 - "Warte auf Rueckmeldung": menschliche Antwort, aber noch keine Entscheidung.
 - "Ohne Rueckmeldung": keine passende Mail gefunden.
 
+Hinweis: Jede Mail hat "direction". "out" = von der Person gesendet, "in" = empfangen.
+Eine gesendete Bewerbung (direction "out") an ein Unternehmen belegt, dass beworben wurde.
 Regeln:
 - Neueste maßgebliche Mail entscheidet. Bestaetigung + spaetere Absage => "Absage".
 - Absagen von Termin-/Eingangsmails unterscheiden; "leider" allein ist keine Absage.
-- Nur zuordnen, wenn Firma/Absender/Kontext eindeutig passen.
+- Nur zuordnen, wenn Firma/Absender/Empfaenger/Kontext eindeutig passen.
 
 Antworte AUSSCHLIESSLICH mit JSON:
 {"jobs":[{"id":1,"phase":"...","bestaetigung":"ja","antwort_am":"YYYY-MM-DD","absender":"...","betreff":"...","status_text":"...","confidence":"hoch"}]}
@@ -110,6 +114,11 @@ def _relevant(blob: str, tokens: set) -> bool:
     return any(a in blob for a in ATS_DOMAINS)
 
 
+def _is_sent(folder: str) -> bool:
+    f = (folder or "").lower()
+    return any(k in f for k in ("sent", "gesendet", "versenden", "outbox"))
+
+
 def _connect():
     provider = db.get_setting("mail_provider", "")
     host = db.get_setting("mail_host", "")
@@ -144,13 +153,15 @@ def _scan(client, jobs):
     since_iso = db.get_setting("last_scan", "") or db.get_setting("mail_since", "2026-07-01")
     since = datetime.strptime(since_iso, "%Y-%m-%d").strftime("%d-%b-%Y")
     configured = db.get_setting("mail_folders", "INBOX")
+    address = (db.get_setting("mail_email", "") or "").lower()
     folders = _list_folders(client)
-    wanted = [f for f in folders if f.upper().startswith("INBOX")] + \
+    wanted = [f for f in folders if f.upper().startswith("INBOX") or _is_sent(f)] + \
              [f for f in configured.split(",") if f.strip() and f.strip() not in folders]
-    skip = {"Sent Items", "Drafts", "Trash", "Spam"}
+    skip = {"Drafts", "Trash", "Spam", "Entwürfe", "Papierkorb"}
     wanted = [f for f in wanted if f not in skip]
     found = []
     for folder in wanted:
+        sent = _is_sent(folder)
         try:
             client.select('"%s"' % folder.replace('"', '\\"'), readonly=True)
             ok, data = client.search(None, "(SINCE %s)" % since)
@@ -168,13 +179,16 @@ def _scan(client, jobs):
             msg = email.message_from_bytes(raw[0][1])
             subj = _decode(msg.get("Subject"))
             frm = _decode(msg.get("From"))
-            if not _relevant(_norm(frm + " " + subj), tokens):
+            to = _decode(msg.get("To"))
+            if not _relevant(_norm(frm + " " + to + " " + subj), tokens):
                 continue
             try:
                 iso = parsedate_to_datetime(msg.get("Date")).date().isoformat()
             except Exception:
                 iso = ""
-            found.append({"date": iso, "folder": folder, "from": frm,
+            is_out = sent or bool(address and address in frm.lower())
+            found.append({"date": iso, "folder": folder, "from": frm, "to": to,
+                          "direction": "out" if is_out else "in",
                           "subject": subj, "body": _body(msg)})
     found.sort(key=lambda m: m["date"])
     return found
@@ -184,7 +198,7 @@ def _store_emails(mails, jobs, run_id):
     tokens = {job["id"]: _tokens([job]) for job in jobs}
     stored = 0
     for mail in mails:
-        blob = _norm(mail["from"] + " " + mail["subject"])
+        blob = _norm(mail["from"] + " " + mail.get("to", "") + " " + mail["subject"])
         job_id = None
         for jid, toks in tokens.items():
             if any(re.search(r"\b%s\b" % re.escape(t), blob) for t in toks):
