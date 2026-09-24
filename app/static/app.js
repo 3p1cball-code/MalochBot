@@ -358,6 +358,24 @@ window.mbImproveCover = function (id) {
   });
 };
 
+window.mbUseDoc = function (id, checked, el) {
+  fetch("/api/documents/" + id + "/use", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ use: checked ? 1 : 0 }),
+  }).then(function (r) { return r.json(); }).then(function () {
+    const lab = el ? el.closest(".use-toggle") : null;
+    if (lab) {
+      lab.classList.toggle("on", checked);
+      lab.classList.toggle("off", !checked);
+      const s = lab.querySelector(".use-label");
+      if (s) s.textContent = checked ? "verwendet" : "nicht verwendet";
+    }
+    mbRunBar(checked ? "Wird für die Suche verwendet." : "Wird nicht mehr verwendet.", "success");
+    setTimeout(function () { mbRunBar(""); }, 1800);
+  }).catch(function () { mbRunBar("Speichern fehlgeschlagen.", "error"); });
+};
+
 window.mbDocEval = function (id) {
   mbRun("/api/documents/" + id + "/evaluate", {}, {
     running: "Dokument wird bewertet (LLM: " + mbModelName() + ") ...",

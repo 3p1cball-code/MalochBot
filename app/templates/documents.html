@@ -23,7 +23,7 @@
 {% if group %}
 <h2>{{ doc_labels[kind] }} <span class="muted small">({{ group|length }})</span></h2>
 <div class="table-wrap" style="margin-bottom:18px"><table class="table">
-  <tr><th>{{ t('docs.file') }}</th><th>{{ t('docs.kind') }}</th><th></th></tr>
+  <tr><th>{{ t('docs.file') }}</th><th>{{ t('docs.kind') }}</th><th>Für Suche</th><th></th></tr>
   {% for d in group %}
   <tr>
     <td><a href="/documents/{{ d.id }}/download">{{ d.name }}</a><div class="small muted">v{{ d.version }} · {{ (d.size / 1024) | round(1) }} KB · {{ d.created_at[:10] }}</div></td>
@@ -33,6 +33,13 @@
           {% for k in kinds %}<option value="{{ k }}" {% if d.kind == k %}selected{% endif %}>{{ doc_labels[k] }}</option>{% endfor %}
         </select>
       </form>
+    </td>
+    <td>
+      <label class="use-toggle {{ 'on' if d.id in selected_docs else 'off' }}">
+        <input type="checkbox" {% if d.id in selected_docs %}checked{% endif %}
+               onchange="mbUseDoc({{ d.id }}, this.checked, this)">
+        <span class="use-label">{{ 'verwendet' if d.id in selected_docs else 'nicht verwendet' }}</span>
+      </label>
     </td>
     <td style="white-space:nowrap">
       {% set ext = d.name.lower().rsplit('.', 1)[-1] %}
@@ -49,7 +56,7 @@
   </tr>
   {% if d.notes %}
   <tr class="eval-row">
-    <td colspan="3">
+    <td colspan="4">
       <details class="eval"><summary>{{ t('docs.show_eval') }}</summary>
         <div class="eval-box"><pre>{{ d.notes }}</pre></div>
       </details>

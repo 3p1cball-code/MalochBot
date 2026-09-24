@@ -240,9 +240,29 @@ def stats(request: Request):
 @app.get("/documents", response_class=HTMLResponse)
 def documents(request: Request):
     docs = db.query("SELECT * FROM documents ORDER BY kind, name")
+    selected = _selected_doc_ids()
     return tr("documents.html", _ctx(
         request, docs=docs, kinds=config.DOC_KINDS,
-        backend=secrets.store.backend()))
+        selected_docs=selected, backend=secrets.store.backend()))
+
+
+def _selected_doc_ids() -> set:
+    raw = db.get_setting("search_doc_ids", "") or ""
+    ids = {int(x) for x in raw.split(",") if x.strip().isdigit()}
+    if ids:
+        return ids
+    return {d["id"] for d in db.query("SELECT id FROM documents")}
+
+
+@app.post("/api/documents/{doc_id}/use")
+def api_doc_use(doc_id: int, use: int = Form(1)):
+    ids = _selected_doc_ids()
+    if use:
+        ids.add(doc_id)
+    else:
+        ids.discard(doc_id)
+    db.set_setting("search_doc_ids", ",".join(str(i) for i in sorted(ids)))
+    return JSONResponse({"selected": sorted(ids)})
 
 
 @app.post("/documents/upload")
@@ -375,12 +395,9 @@ def settings(request: Request, saved: str = ""):
         provider = name.split("/", 1)[0]
         models_by_provider.setdefault(provider, []).append(name)
     documents = db.query("SELECT id, name, kind FROM documents ORDER BY kind, name")
-    chosen = [int(x) for x in (values.get("search_doc_ids", "") or "").split(",") if x.strip().isdigit()]
-    selected_docs = chosen if chosen else [d["id"] for d in documents]
     return tr("settings.html", _ctx(
         request, values=values, mail_providers=providers.PROVIDERS,
         models=models, models_by_provider=models_by_provider,
-        documents=documents, selected_docs=selected_docs,
         secret_backend=secrets.store.backend(),
         has_mail_password=bool(secrets.store.get("mail_password", "")),
         saved=saved))
@@ -399,8 +416,6 @@ async def settings_save(request: Request):
         secrets.store.set("mail_password", password)
     if form.get("clear_password"):
         secrets.store.delete("mail_password")
-    doc_ids = form.getlist("search_docs")
-    db.set_setting("search_doc_ids", ",".join(str(x) for x in doc_ids))
     db.set_setting("setup_done", "1")
     return RedirectResponse("/settings?saved=1", status_code=303)
 

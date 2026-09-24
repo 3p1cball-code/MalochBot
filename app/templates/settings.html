@@ -25,21 +25,7 @@
   </div>
 
   <div class="card stack">
-    <h2 style="margin-top:0">{{ t('settings.docs_x') }}</h2>
-    <div class="field"><label>{{ t('settings.docs_x') }}</label>
-      <div class="doc-picker">
-        {% for d in documents %}
-        <label class="doc-pick">
-          <input type="checkbox" name="search_docs" value="{{ d.id }}"
-                 onchange="this.form.submit()"
-                 {% if d.id in selected_docs %}checked{% endif %}>
-          <span><strong>{{ d.name }}</strong> <span class="muted small">· {{ doc_labels[d.kind] }}</span></span>
-        </label>
-        {% endfor %}
-        {% if not documents %}<span class="muted small">Noch keine Unterlagen – bitte unter „Unterlagen" hochladen.</span>{% endif %}
-      </div>
-      <span class="small muted">Standard: alle Dokumente. Auswahl wird beim Anklicken sofort gespeichert.</span>
-    </div>
+    <h2 style="margin-top:0">{{ t('settings.extra_y') }}</h2>
     <div class="field"><label>{{ t('settings.extra_y') }}</label>
       <textarea name="search_extra" rows="3">{{ values.search_extra }}</textarea>
     </div>
