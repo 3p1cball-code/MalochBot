@@ -68,6 +68,7 @@ def _ctx(request: Request, **kwargs):
         "lang": lang,
         "languages": i18n.LANGUAGES,
         "model": db.get_setting("model", config.DEFAULT_MODEL),
+        "build_id": BUILD_ID,
         "setup_done": db.get_setting("setup_done", "0") == "1",
     }
     base.update(kwargs)

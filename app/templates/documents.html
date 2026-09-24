@@ -22,7 +22,8 @@
 {% set group = docs | selectattr("kind", "equalto", kind) | list %}
 {% if group %}
 <h2>{{ doc_labels[kind] }} <span class="muted small">({{ group|length }})</span></h2>
-<div class="table-wrap" style="margin-bottom:18px"><table class="table">
+<div class="table-wrap" style="margin-bottom:18px"><table class="table docs-table">
+  <colgroup><col style="width:38%"><col style="width:16%"><col style="width:20%"><col style="width:26%"></colgroup>
   <tr><th>{{ t('docs.file') }}</th><th>{{ t('docs.kind') }}</th><th>Verwendung</th><th></th></tr>
   {% for d in group %}
   <tr>

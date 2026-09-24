@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ app_name }}{% if page_title %} · {{ page_title }}{% endif %}</title>
-  <link rel="stylesheet" href="/static/app.css">
+  <link rel="stylesheet" href="/static/app.css?v={{ build_id }}">
   <link rel="icon" href="/static/logo.svg" type="image/svg+xml">
   <script>
     (function () {
@@ -54,7 +54,7 @@
     <a href="/about">{{ t('nav.about') }}</a> ·
     <a href="mailto:{{ donate_email }}">{{ donate_email }}</a>
   </footer>
-  <script src="/static/app.js"></script>
+  <script src="/static/app.js?v={{ build_id }}"></script>
   <script>window.MB_MODEL = {{ model|tojson }};</script>
   <script>
     document.addEventListener("DOMContentLoaded", function () {
