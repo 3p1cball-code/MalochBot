@@ -188,6 +188,11 @@ function mbEsc(s) {
         '<div class="field" style="flex:1;min-width:160px"><label>' + L("notec", "Notiz") + '</label><input name="note" placeholder="' + L("optional", "optional") + '"></div>' +
         '<button class="btn btn-primary" type="submit">' + L("save", "Speichern") + "</button></form>" +
       '<div style="margin-top:16px">' +
+        '<div class="field" style="margin-bottom:10px;max-width:260px"><label>Sprache des Anschreibens</label>' +
+          '<select id="cover-lang">' +
+            '<option value="">Automatisch' + (j.language ? " (" + mbEsc(j.language) + ")" : "") + "</option>" +
+            '<option value="de">Deutsch</option><option value="en">English</option>' +
+          "</select></div>" +
         (j.cover_letter_name
           ? '<a class="btn btn-primary" style="font-weight:700;padding:10px 16px" href="/generated/' + mbEsc(j.cover_letter_name) + '" download>Anschreiben herunterladen (PDF)</a> ' +
             '<button class="btn" type="button" onclick="mbMakeCover(' + j.id + ')">Neu erzeugen</button>'
@@ -320,7 +325,9 @@ window.mbStatusUpdate = function () {
 
 window.mbMakeCover = function (id) {
   const j = (window.mbJobs || []).find(function (x) { return x.id === id; }) || {};
-  mbRun("/api/jobs/" + id + "/cover-letter", {}, {
+  const langEl = document.getElementById("cover-lang");
+  const lang = langEl ? langEl.value : "";
+  mbRun("/api/jobs/" + id + "/cover-letter", { lang: lang }, {
     running: "Anschreiben wird erzeugt (LLM: " + mbModelName() + ") ...",
     error: "Anschreiben fehlgeschlagen: ",
     onDone: function (run) {
@@ -337,7 +344,9 @@ window.mbImproveCover = function (id) {
   const feedback = ta ? ta.value : "";
   if (!feedback.trim()) { mbRunBar("Bitte Feedback eingeben.", "error"); return; }
   const j = (window.mbJobs || []).find(function (x) { return x.id === id; }) || {};
-  mbRun("/api/jobs/" + id + "/cover-letter/improve", { feedback: feedback }, {
+  const langEl = document.getElementById("cover-lang");
+  const lang = langEl ? langEl.value : "";
+  mbRun("/api/jobs/" + id + "/cover-letter/improve", { feedback: feedback, lang: lang }, {
     running: "Anschreiben wird überarbeitet (LLM: " + mbModelName() + ") ...",
     error: "Überarbeitung fehlgeschlagen: ",
     onDone: function (run) {

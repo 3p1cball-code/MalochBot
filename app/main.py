@@ -427,16 +427,16 @@ def about(request: Request):
 
 
 @app.post("/api/jobs/{job_id}/cover-letter")
-def api_cover_letter(job_id: int):
+def api_cover_letter(job_id: int, lang: str = Form("")):
     rid = start_background("anschreiben", lambda r, m: {
-        "datei": documents_engine.generate_cover_letter(job_id, r, m)})
+        "datei": documents_engine.generate_cover_letter(job_id, r, m, lang)})
     return JSONResponse({"run_id": rid})
 
 
 @app.post("/api/jobs/{job_id}/cover-letter/improve")
-def api_cover_improve(job_id: int, feedback: str = Form(...)):
+def api_cover_improve(job_id: int, feedback: str = Form(...), lang: str = Form("")):
     rid = start_background("anschreiben+", lambda r, m: {
-        "datei": documents_engine.improve_cover_letter(job_id, feedback, r, m)})
+        "datei": documents_engine.improve_cover_letter(job_id, feedback, r, m, lang)})
     return JSONResponse({"run_id": rid})
 
 

@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     description TEXT DEFAULT '',
     status TEXT DEFAULT 'gefunden',
     cover_letter TEXT DEFAULT '',
+    language TEXT DEFAULT '',
     raw TEXT DEFAULT '{}',
     UNIQUE(company, title, url)
 );
@@ -146,6 +147,8 @@ def init_db() -> None:
                    [dict(r) for r in conn.execute("PRAGMA table_info(jobs)").fetchall()]}
         if "company_url" not in columns:
             conn.execute("ALTER TABLE jobs ADD COLUMN company_url TEXT DEFAULT ''")
+        if "language" not in columns:
+            conn.execute("ALTER TABLE jobs ADD COLUMN language TEXT DEFAULT ''")
         conn.execute("UPDATE jobs SET status='gefunden' WHERE status='neu'")
         conn.execute("UPDATE jobs SET status='beworben' WHERE status='bestaetigt'")
         # Dokumentpfade portabel machen (nach Migration auf anderen Rechner/Ordner)
@@ -199,8 +202,8 @@ def upsert_job(job: dict):
         return existing["id"], False
     new_id = execute(
         "INSERT INTO jobs(company,title,location,remote,source,url,company_url,published_at,found_at,"
-        "run_id,score,fit,rationale,description,status,raw) "
-        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        "run_id,score,fit,rationale,description,status,language,raw) "
+        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         (
             job.get("company", ""), job.get("title", ""), job.get("location", ""),
             int(bool(job.get("remote"))), job.get("source", ""), job.get("url", ""),
@@ -208,7 +211,8 @@ def upsert_job(job: dict):
             job.get("published_at", ""), job.get("found_at", now_iso()),
             job.get("run_id"), int(job.get("score") or 0), job.get("fit", ""),
             job.get("rationale", ""), job.get("description", ""),
-            job.get("status", "gefunden"), json.dumps(job.get("raw", {}), ensure_ascii=False),
+            job.get("status", "gefunden"), job.get("language", ""),
+            json.dumps(job.get("raw", {}), ensure_ascii=False),
         ),
     )
     return new_id, True

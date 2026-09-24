@@ -33,10 +33,11 @@ Aufgabe:
 - rationale: 3-5 Saetze, warum die Stelle gut passt (konkrete Anknuepfungspunkte).
 - description: 5-8 Saetze mit Aufgaben, Anforderungen, Team/Kontext und eingesetzten
   Tools – so detailliert, wie es die Anzeige hergibt; nichts erfinden.
+- lang: Sprache der Stellenanzeige, entweder "de" oder "en".
 
 Antworte AUSSCHLIESSLICH mit JSON, ohne Markdown, in genau dieser Form:
 {"jobs":[{"company":"...","company_url":"https://...","title":"...","location":"...","remote":true,
-"url":"...","published_at":"YYYY-MM-DD","score":87,"fit":"hoch",
+"url":"...","published_at":"YYYY-MM-DD","score":87,"fit":"hoch","lang":"de",
 "rationale":"...","description":"..."}]}
 """
 
@@ -83,7 +84,8 @@ def run_search(run_id: int, model: str = "", extra: str = "") -> dict:
             continue
         job["source"] = "search"
         job["run_id"] = run_id
-        job.setdefault("status", "neu")
+        job["language"] = job.get("lang") or job.get("language") or ""
+        job.setdefault("status", "gefunden")
         _, created = db.upsert_job(job)
         if created:
             added += 1

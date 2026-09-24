@@ -80,6 +80,32 @@ die Passung zur Rolle. Klinge persoenlich und individuell, nicht schablonenhaft,
 dich am Ton des Referenz-Anschreibens. Maximal eine Seite. Gib ausschliesslich das Anschreiben zurueck.
 """
 
+COVER_PROMPT_EN = """Write a highly personal, compelling cover letter in ENGLISH as Markdown.
+
+Candidate profile:
+{profile}
+
+Preferences:
+{preferences}
+
+CV excerpt:
+{cv}
+
+Reference cover letter (style and tone guide, do NOT copy verbatim):
+{reference}
+
+Role:
+- Company: {company}
+- Position: {title}
+- Location: {location}
+- Description: {description}
+- Link: {url}
+
+Connect the company's context with the candidate's profile: concrete roles, achievements and
+the fit for the position. Sound personal and specific, not templated, and follow the tone of
+the reference letter. Maximum one page. Return only the cover letter.
+"""
+
 
 def extract_text(path: str) -> str:
     ext = os.path.splitext(path)[1].lower()
@@ -245,19 +271,24 @@ def text_to_pdf(text: str, path) -> bool:
     return os.path.exists(path)
 
 
-def generate_cover_letter(job_id: int, run_id: int, model: str = "") -> str:
+def generate_cover_letter(job_id: int, run_id: int, model: str = "", lang: str = "") -> str:
     job = db.one("SELECT * FROM jobs WHERE id=?", (job_id,))
     if not job:
         raise RuntimeError("Job nicht gefunden.")
+    target_lang = (lang or job.get("language") or "de").strip().lower()
+    target_lang = "en" if target_lang.startswith("en") else "de"
+    template = COVER_PROMPT_EN if target_lang == "en" else COVER_PROMPT
     cv_text, ref_text = _context_texts()
-    prompt = COVER_PROMPT.format(
+    prompt = template.format(
         profile=db.get_setting("profile", ""), preferences=db.get_setting("preferences", ""),
         cv=cv_text or "(kein Lebenslauf hinterlegt)",
         reference=ref_text or "(kein Referenz-Anschreiben hinterlegt)",
         company=job["company"], title=job["title"],
         location=job["location"], description=job["description"] or job["rationale"],
         url=job["url"])
-    logbus.log(run_id, "info", "Erzeuge Anschreiben fuer %s ..." % job["company"])
+    if not job.get("language"):
+        db.execute("UPDATE jobs SET language=? WHERE id=?", (target_lang, job_id))
+    logbus.log(run_id, "info", "Erzeuge Anschreiben (%s) fuer %s ..." % (target_lang, job["company"]))
     rc, out = oc.run(prompt, model=model, run_id=run_id)
     return _save_cover_letter(job, out.strip(), run_id)
 
@@ -283,6 +314,8 @@ def _save_cover_letter(job, text: str, run_id: int) -> str:
 
 IMPROVE_COVER_PROMPT = """Ueberarbeite das folgende Anschreiben gemaess dem Feedback.
 
+{lang_line}
+
 Feedback der Person:
 {feedback}
 
@@ -292,11 +325,18 @@ Aktuelles Anschreiben:
 ---
 
 Behalte alle Fakten bei, setze das Feedback praezise um (Ton, Inhalt, Struktur) und gib
-NUR das vollstaendige, ueberarbeitete Anschreiben zurueck (Deutsch, Markdown, eine Seite).
+NUR das vollstaendige, ueberarbeitete Anschreiben zurueck (Markdown, eine Seite).
 """
 
 
-def improve_cover_letter(job_id: int, feedback: str, run_id: int, model: str = "") -> str:
+def detect_lang(text: str) -> str:
+    import re
+    de = len(re.findall(r"\b(und|ich|sie|der|die|das|mit|fuer|nicht|wir|sehr|Ihre)\b", text or "", re.I))
+    en = len(re.findall(r"\b(and|the|you|with|for|your|dear|sincerely|would|am)\b", text or "", re.I))
+    return "en" if en > de else "de"
+
+
+def improve_cover_letter(job_id: int, feedback: str, run_id: int, model: str = "", lang: str = "") -> str:
     job = db.one("SELECT * FROM jobs WHERE id=?", (job_id,))
     if not job:
         raise RuntimeError("Job nicht gefunden.")
@@ -308,7 +348,13 @@ def improve_cover_letter(job_id: int, feedback: str, run_id: int, model: str = "
         letter = extract_text(job["cover_letter"])
     if not letter.strip():
         raise RuntimeError("Kein vorhandenes Anschreiben zum Verbessern gefunden.")
-    prompt = IMPROVE_COVER_PROMPT.format(feedback=feedback, letter=letter[:6000])
+    target_lang = (lang or job.get("language") or detect_lang(letter))
+    target_lang = "en" if str(target_lang).lower().startswith("en") else "de"
+    if target_lang == "en":
+        lang_line = "Keep the cover letter in ENGLISH."
+    else:
+        lang_line = "Verfasse das Anschreiben auf Deutsch."
+    prompt = IMPROVE_COVER_PROMPT.format(lang_line=lang_line, feedback=feedback, letter=letter[:6000])
     logbus.log(run_id, "info", "Ueberarbeite Anschreiben gemaess Feedback ...")
     rc, out = oc.run(prompt, model=model, run_id=run_id)
     text = out.strip()
