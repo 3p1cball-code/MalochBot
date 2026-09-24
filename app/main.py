@@ -374,7 +374,8 @@ def documents_crop(request: Request, doc_id: int):
 
 @app.post("/documents/{doc_id}/crop")
 def documents_crop_apply(doc_id: int, x: int = Form(...), y: int = Form(...),
-                         w: int = Form(...), h: int = Form(...), rotate: int = Form(0)):
+                         w: int = Form(...), h: int = Form(...), rotate: float = Form(0),
+                         brightness: float = Form(1), contrast: float = Form(1)):
     doc = db.one("SELECT * FROM documents WHERE id=?", (doc_id,))
     if not doc:
         return RedirectResponse("/documents", status_code=303)
@@ -383,11 +384,16 @@ def documents_crop_apply(doc_id: int, x: int = Form(...), y: int = Form(...),
     if ext.lower() not in IMAGE_EXT or not os.path.exists(path):
         return RedirectResponse("/documents", status_code=303)
     try:
-        from PIL import Image, ImageOps
+        from PIL import Image, ImageEnhance, ImageOps
         img = ImageOps.exif_transpose(Image.open(path))
-        rot = int(rotate) % 360
-        if rot in (90, 180, 270):
-            img = img.rotate(-rot, expand=True)
+        rot = float(rotate) % 360
+        if 0.05 < rot < 359.95:
+            fill = (255, 255, 255, 255) if img.mode == "RGBA" else (255, 255, 255)
+            img = img.rotate(rot, expand=True, fillcolor=fill)
+        if abs(brightness - 1) > 0.001:
+            img = ImageEnhance.Brightness(img).enhance(brightness)
+        if abs(contrast - 1) > 0.001:
+            img = ImageEnhance.Contrast(img).enhance(contrast)
         left, top = max(0, x), max(0, y)
         right = min(img.width, x + w)
         bottom = min(img.height, y + h)
@@ -407,7 +413,7 @@ def documents_crop_apply(doc_id: int, x: int = Form(...), y: int = Form(...),
                "VALUES(?,?,?,?,?,?,?)",
                (out.name, doc["kind"], str(out), out.stat().st_size,
                 (doc["version"] or 1) + 1, db.now_iso(),
-                "Zuschnitt/Drehung von %s" % doc["name"]))
+                "Bearbeitet von %s" % doc["name"]))
     return RedirectResponse("/documents", status_code=303)
 
 

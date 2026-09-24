@@ -2,36 +2,43 @@
 {% set page_title = "Bild bearbeiten" %}
 {% block content %}
 <h1>Bild bearbeiten</h1>
-<p class="subtitle">{{ doc.name }} · drehen, ziehen (verschieben), zoomen. Der Rahmen zeigt den Zuschnitt (7:9 für Bewerbungsfotos).</p>
+<p class="subtitle">{{ doc.name }} · drehen, Helligkeit/Kontrast, ziehen (verschieben), zoomen. Der Rahmen zeigt den Zuschnitt (7:9 für Bewerbungsfotos).</p>
 
 <div class="crop-layout">
   <div>
     <div id="frame" class="crop-frame"><canvas id="cimg"></canvas></div>
-    <div class="crop-controls">
-      <button class="btn btn-sm" type="button" onclick="mbRotate(-90)">&#8634; 90°</button>
-      <button class="btn btn-sm" type="button" onclick="mbRotate(90)">&#8635; 90°</button>
-      <label class="small" style="margin-left:8px">Zoom</label>
-      <input type="range" id="zoom" min="100" max="300" value="100" style="flex:1;max-width:180px">
-    </div>
-    <div class="crop-controls">
+  </div>
+  <div class="crop-side">
+    <div class="field"><label>Drehen <span id="rotval" class="muted">0°</span></label>
+      <input type="range" id="rot" min="-180" max="180" step="0.5" value="0"></div>
+    <div class="field"><label>Helligkeit <span id="brightval" class="muted">100%</span></label>
+      <input type="range" id="bright" min="50" max="150" step="1" value="100"></div>
+    <div class="field"><label>Kontrast <span id="contrastval" class="muted">100%</span></label>
+      <input type="range" id="contrast" min="50" max="150" step="1" value="100"></div>
+    <div class="field"><label>Zoom <span id="zoomval" class="muted">100%</span></label>
+      <input type="range" id="zoom" min="100" max="300" step="1" value="100"></div>
+    <div style="display:flex;gap:10px;margin-top:8px">
       <button class="btn btn-primary" type="button" onclick="mbCropSave()">Speichern</button>
       <a class="btn" href="/documents">Abbrechen</a>
     </div>
   </div>
-  <form id="cropform" method="post" action="/documents/{{ doc.id }}/crop" style="display:none">
-    <input type="hidden" name="x" id="cx"><input type="hidden" name="y" id="cy">
-    <input type="hidden" name="w" id="cw"><input type="hidden" name="h" id="ch">
-    <input type="hidden" name="rotate" id="crot" value="0">
-  </form>
 </div>
 
+<form id="cropform" method="post" action="/documents/{{ doc.id }}/crop" style="display:none">
+  <input type="hidden" name="x" id="cx"><input type="hidden" name="y" id="cy">
+  <input type="hidden" name="w" id="cw"><input type="hidden" name="h" id="ch">
+  <input type="hidden" name="rotate" id="crot" value="0">
+  <input type="hidden" name="brightness" id="cbright" value="1">
+  <input type="hidden" name="contrast" id="ccontrast" value="1">
+</form>
+
 <style>
-.crop-layout { display: flex; gap: 24px; flex-wrap: wrap; }
+.crop-layout { display: flex; gap: 28px; flex-wrap: wrap; }
 .crop-frame { position: relative; width: 315px; height: 405px; overflow: hidden; border: 2px solid var(--accent);
   border-radius: 4px; background: #111; cursor: grab; touch-action: none; }
 .crop-frame.dragging { cursor: grabbing; }
 .crop-frame canvas { position: absolute; user-select: none; }
-.crop-controls { display: flex; gap: 10px; align-items: center; margin-top: 12px; max-width: 620px; flex-wrap: wrap; }
+.crop-side { min-width: 260px; max-width: 360px; display: flex; flex-direction: column; gap: 10px; }
 </style>
 
 <script>
@@ -39,24 +46,38 @@
   const Fw = 315, Fh = 405;
   const frame = document.getElementById("frame");
   const canvas = document.getElementById("cimg");
-  const zoom = document.getElementById("zoom");
+  const rotEl = document.getElementById("rot");
+  const brightEl = document.getElementById("bright");
+  const contrastEl = document.getElementById("contrast");
+  const zoomEl = document.getElementById("zoom");
   const src = new Image();
   let natW = 0, natH = 0, base = 1, scale = 1, dx = 0, dy = 0, rot = 0;
 
-  function drawRotated() {
-    if (rot % 180 === 0) { natW = src.naturalWidth; natH = src.naturalHeight; }
-    else { natW = src.naturalHeight; natH = src.naturalWidth; }
+  function rotDims(w, h, deg) {
+    const r = deg * Math.PI / 180;
+    const c = Math.abs(Math.cos(r)), s = Math.abs(Math.sin(r));
+    return [Math.ceil(w * c + h * s), Math.ceil(w * s + h * c)];
+  }
+  function draw() {
+    const d = rotDims(src.naturalWidth, src.naturalHeight, rot);
+    natW = d[0]; natH = d[1];
     canvas.width = natW; canvas.height = natH;
     const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, natW, natH);
     ctx.save();
     ctx.translate(natW / 2, natH / 2);
-    ctx.rotate(rot * Math.PI / 180);
+    ctx.rotate(-rot * Math.PI / 180);
     ctx.drawImage(src, -src.naturalWidth / 2, -src.naturalHeight / 2);
     ctx.restore();
+    applyFilters();
+  }
+  function applyFilters() {
+    canvas.style.filter = "brightness(" + (parseInt(brightEl.value, 10) / 100) +
+      ") contrast(" + (parseInt(contrastEl.value, 10) / 100) + ")";
   }
   function fit() {
     base = Math.max(Fw / natW, Fh / natH);
-    scale = base * (parseInt(zoom.value, 10) / 100);
+    scale = base * (parseInt(zoomEl.value, 10) / 100);
     dx = (Fw - natW * scale) / 2;
     dy = (Fh - natH * scale) / 2;
     render();
@@ -73,7 +94,7 @@
     canvas.style.left = dx + "px";
     canvas.style.top = dy + "px";
   }
-  src.addEventListener("load", function () { drawRotated(); fit(); });
+  src.addEventListener("load", function () { draw(); fit(); });
   src.src = "{{ image_url }}";
 
   frame.addEventListener("pointerdown", function (e) {
@@ -90,13 +111,21 @@
     frame.addEventListener("pointerup", up);
     e.preventDefault();
   });
-  zoom.addEventListener("input", function () {
-    scale = base * (parseInt(zoom.value, 10) / 100); render();
+  rotEl.addEventListener("input", function () {
+    rot = parseFloat(rotEl.value);
+    document.getElementById("rotval").textContent = rot + "°";
+    draw(); fit();
   });
-  window.mbRotate = function (deg) {
-    rot = (rot + deg + 360) % 360;
-    drawRotated(); fit();
-  };
+  brightEl.addEventListener("input", function () {
+    document.getElementById("brightval").textContent = brightEl.value + "%"; applyFilters();
+  });
+  contrastEl.addEventListener("input", function () {
+    document.getElementById("contrastval").textContent = contrastEl.value + "%"; applyFilters();
+  });
+  zoomEl.addEventListener("input", function () {
+    document.getElementById("zoomval").textContent = zoomEl.value + "%";
+    scale = base * (parseInt(zoomEl.value, 10) / 100); render();
+  });
   window.mbCropSave = function () {
     const s = scale;
     let x = Math.round((-dx) / s), y = Math.round((-dy) / s);
@@ -108,6 +137,8 @@
     document.getElementById("cw").value = w;
     document.getElementById("ch").value = h;
     document.getElementById("crot").value = rot;
+    document.getElementById("cbright").value = parseInt(brightEl.value, 10) / 100;
+    document.getElementById("ccontrast").value = parseInt(contrastEl.value, 10) / 100;
     document.getElementById("cropform").submit();
   };
 })();
