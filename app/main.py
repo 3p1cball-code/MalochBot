@@ -307,6 +307,64 @@ def documents_download(doc_id: int):
     return FileResponse(path, filename=doc["name"])
 
 
+IMAGE_EXT = (".png", ".jpg", ".jpeg", ".webp")
+
+
+@app.get("/documents/{doc_id}/raw")
+def documents_raw(doc_id: int):
+    doc = db.one("SELECT * FROM documents WHERE id=?", (doc_id,))
+    if not doc:
+        return HTMLResponse("Nicht gefunden", status_code=404)
+    path = documents_engine.resolve_path(doc)
+    if not os.path.exists(path):
+        return HTMLResponse("Nicht gefunden", status_code=404)
+    return FileResponse(path)
+
+
+@app.get("/documents/{doc_id}/crop", response_class=HTMLResponse)
+def documents_crop(request: Request, doc_id: int):
+    doc = db.one("SELECT * FROM documents WHERE id=?", (doc_id,))
+    if not doc or not doc["name"].lower().endswith(IMAGE_EXT):
+        return HTMLResponse("Zuschneiden ist nur für Bilder möglich.", status_code=404)
+    return tr("crop.html", _ctx(request, doc=doc, image_url="/documents/%d/raw" % doc_id))
+
+
+@app.post("/documents/{doc_id}/crop")
+def documents_crop_apply(doc_id: int, x: int = Form(...), y: int = Form(...),
+                         w: int = Form(...), h: int = Form(...)):
+    doc = db.one("SELECT * FROM documents WHERE id=?", (doc_id,))
+    if not doc:
+        return RedirectResponse("/documents", status_code=303)
+    path = documents_engine.resolve_path(doc)
+    stem, ext = os.path.splitext(doc["name"])
+    if ext.lower() not in IMAGE_EXT or not os.path.exists(path):
+        return RedirectResponse("/documents", status_code=303)
+    try:
+        from PIL import Image
+        img = Image.open(path)
+        left, top = max(0, x), max(0, y)
+        right = min(img.width, x + w)
+        bottom = min(img.height, y + h)
+        if right - left < 10 or bottom - top < 10:
+            return RedirectResponse("/documents", status_code=303)
+        img = img.crop((left, top, right, bottom))
+        if ext.lower() == ".webp":
+            ext = ".png"
+        out = config.UPLOAD_DIR / ("%s_zuschnitt%s" % (stem, ext))
+        if ext.lower() in (".jpg", ".jpeg") and img.mode in ("RGBA", "P"):
+            img = img.convert("RGB")
+        img.save(str(out))
+    except Exception as exc:
+        logbus.log(None, "error", "Zuschneiden fehlgeschlagen: %s" % exc)
+        return RedirectResponse("/documents", status_code=303)
+    db.execute("INSERT INTO documents(name, kind, path, size, version, created_at, notes) "
+               "VALUES(?,?,?,?,?,?,?)",
+               (out.name, doc["kind"], str(out), out.stat().st_size,
+                (doc["version"] or 1) + 1, db.now_iso(),
+                "Zuschnitt von %s" % doc["name"]))
+    return RedirectResponse("/documents", status_code=303)
+
+
 # ---------------------------------------------------------------- Einstellungen
 @app.get("/settings", response_class=HTMLResponse)
 def settings(request: Request, saved: str = ""):

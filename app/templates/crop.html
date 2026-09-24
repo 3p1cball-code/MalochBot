@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% set page_title = "Bild zuschneiden" %}
+{% block content %}
+<h1>Bild zuschneiden</h1>
+<p class="subtitle">{{ doc.name }} · ziehen zum Verschieben, Regler zum Zoomen. Der Rahmen zeigt den Zuschnitt (Format 7:9 für Bewerbungsfotos).</p>
+
+<div class="crop-layout">
+  <div>
+    <div id="frame" class="crop-frame">
+      <img id="cimg" src="{{ image_url }}" alt="" draggable="false">
+    </div>
+    <div class="crop-controls">
+      <label class="small">Zoom</label>
+      <input type="range" id="zoom" min="100" max="300" value="100" style="flex:1">
+      <button class="btn btn-primary" type="button" onclick="mbCropSave()">Zuschneiden &amp; speichern</button>
+      <a class="btn" href="/documents">Abbrechen</a>
+    </div>
+  </div>
+  <form id="cropform" method="post" action="/documents/{{ doc.id }}/crop" style="display:none">
+    <input type="hidden" name="x" id="cx"><input type="hidden" name="y" id="cy">
+    <input type="hidden" name="w" id="cw"><input type="hidden" name="h" id="ch">
+  </form>
+</div>
+
+<style>
+.crop-layout { display: flex; gap: 24px; flex-wrap: wrap; }
+.crop-frame { position: relative; width: 315px; height: 405px; overflow: hidden; border: 2px solid var(--accent);
+  border-radius: 4px; background: #111; cursor: grab; touch-action: none; }
+.crop-frame.dragging { cursor: grabbing; }
+.crop-frame img { position: absolute; user-select: none; -webkit-user-drag: none; }
+.crop-controls { display: flex; gap: 12px; align-items: center; margin-top: 14px; max-width: 560px; }
+.crop-controls input[type=range] { max-width: 200px; }
+</style>
+
+<script>
+(function () {
+  const Fw = 315, Fh = 405;
+  const frame = document.getElementById("frame");
+  const img = document.getElementById("cimg");
+  const zoom = document.getElementById("zoom");
+  let natW = 0, natH = 0, base = 1, scale = 1, dx = 0, dy = 0;
+
+  function clamp() {
+    const W = natW * scale, H = natH * scale;
+    dx = Math.min(0, Math.max(Fw - W, dx));
+    dy = Math.min(0, Math.max(Fh - H, dy));
+  }
+  function render() {
+    clamp();
+    img.style.width = (natW * scale) + "px";
+    img.style.height = (natH * scale) + "px";
+    img.style.left = dx + "px";
+    img.style.top = dy + "px";
+  }
+  function init() {
+    natW = img.naturalWidth || 1; natH = img.naturalHeight || 1;
+    base = Math.max(Fw / natW, Fh / natH);
+    scale = base;
+    dx = (Fw - natW * scale) / 2;
+    dy = (Fh - natH * scale) / 2;
+    render();
+  }
+  if (img.complete) init(); else img.addEventListener("load", init);
+
+  frame.addEventListener("pointerdown", function (e) {
+    frame.setPointerCapture(e.pointerId);
+    frame.classList.add("dragging");
+    let sx = e.clientX, sy = e.clientY, ox = dx, oy = dy;
+    function move(ev) { dx = ox + (ev.clientX - sx); dy = oy + (ev.clientY - sy); render(); }
+    function up() {
+      frame.classList.remove("dragging");
+      frame.removeEventListener("pointermove", move);
+      frame.removeEventListener("pointerup", up);
+    }
+    frame.addEventListener("pointermove", move);
+    frame.addEventListener("pointerup", up);
+    e.preventDefault();
+  });
+  zoom.addEventListener("input", function () {
+    scale = base * (parseInt(zoom.value, 10) / 100);
+    render();
+  });
+  window.mbCropSave = function () {
+    const s = scale;
+    let x = Math.round((-dx) / s), y = Math.round((-dy) / s);
+    let w = Math.round(Fw / s), h = Math.round(Fh / s);
+    x = Math.max(0, Math.min(natW - w, x));
+    y = Math.max(0, Math.min(natH - h, y));
+    document.getElementById("cx").value = x;
+    document.getElementById("cy").value = y;
+    document.getElementById("cw").value = w;
+    document.getElementById("ch").value = h;
+    document.getElementById("cropform").submit();
+  };
+})();
+</script>
+{% endblock %}

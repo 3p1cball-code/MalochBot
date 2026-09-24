@@ -6,3 +6,4 @@ keyring>=24
 cryptography>=42
 pypdf>=4
 fpdf2>=2.7
+pillow>=10
