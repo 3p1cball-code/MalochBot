@@ -24,8 +24,8 @@ NOISE = re.compile(
     r"studysmarter|newsletter|jobalerts|jobs-noreply|updates-noreply|talent\b|"
     r"jobteaser|substack)", re.I)
 APPLY_NOTICE = re.compile(
-    r"(bewerbung wurde (verschickt|gesendet|uebermittelt|übermittelt)|"
-    r"deine bewerbung (bei|wurde)|bewerbung bei |bewerbung eingereicht|"
+    r"(bewerbung wurde.{0,40}(gesendet|verschickt|uebermittelt|übermittelt|eingereicht)|"
+    r"(deine|ihre) bewerbung (bei|wurde|an )|bewerbung bei |bewerbung eingereicht|"
     r"your application (to|has been|was sent|for)|thank you for applying|"
     r"we have received your application|wir haben (deine|ihre) bewerbung|"
     r"application submitted|applied to )", re.I)
