@@ -2,75 +2,75 @@
 
 # MalochBot
 
-> Die Maloche der Jobsuche nimmt dir MalochBot ab.
+> Job hunting is a grind. MalochBot takes it off your plate.
 
-MalochBot ist eine lokale Open-Source-Webanwendung, die **Jobsuche, Bewerbungsverwaltung
-und Karriereunterlagen** an einem Ort bündelt. Alle Analysen laufen über
-[opencode](https://opencode.ai) und ein frei wählbares LLM.
+MalochBot is a local, open-source web app that bundles **job search, application
+tracking and career documents** in one place. All analysis runs through
+[opencode](https://opencode.ai) with a freely chosen LLM.
 
-## Projektziel – Jobsuche zu Ende gedacht
+## Project goal — job hunting, thought through
 
-Jobsuche ist zermürbend: Stellenanzeigen über viele Portale, Bewerbungen per Mail,
-Rückmeldungen im Postfach, Unterlagen in mehreren Ordnern. MalochBot denkt diesen Ablauf
-konsequent zu Ende und bündelt ihn an **einer** Stelle – **lokal auf dem eigenen Rechner**,
-ohne Cloud-Zwang. Suche, Tracking und Unterlagen greifen auf dieselbe Datenbasis zu; jede
-Bewertung läuft über opencode mit einem frei wählbaren LLM. Das Ziel ist nicht, den Menschen
-zu ersetzen, sondern die **Routine zu automatisieren**, damit mehr Zeit für die
-Entscheidungen bleibt, die wirklich zählen: welcher Job, welches Anschreiben, welcher Termin.
+Job hunting is draining: postings spread across many portals, applications by email,
+replies buried in your inbox, documents in several folders. MalochBot takes that whole
+process seriously and brings it together in **one** place — **locally on your own
+machine**, no cloud required. Search, tracking and documents share the same data, and
+every assessment runs through opencode with a freely chosen LLM. The goal is not to
+replace the human, but to **automate the routine** so more time is left for the
+decisions that actually matter: which job, which cover letter, which interview.
 
-## Funktionen
+## Features
 
-- **Jobs finden** – per Button eine Suche starten; neue Stellen werden gefunden,
-  dedupliziert und in der Datenbank abgelegt.
-- **Eine Ansicht für alles** – links die filterbare Liste aller gefundenen Stellen
-  (Filter in Echtzeit), rechts das Detailfenster mit Fit-Begründung, Beschreibung,
-  Ort/Remote, Status, Links zur Stelle und zum Unternehmen sowie zugeordneten Mails.
-- **Bewerbungen tracken** – Mailkonto verbinden (Gmail, Outlook, GMX, WEB.DE, STRATO,
-  IONOS, mailbox.org, Posteo, Yahoo, iCloud, Zoho, Fastmail oder eigener Server);
-  Mails werden read-only per IMAP gelesen und der Status per LLM bewertet.
-- **Unterlagen** – Lebenslauf, Zeugnisse, Arbeitsproben und Referenzanschreiben zentral
-  ablegen, per LLM bewerten/verbessern lassen und Anschreiben erzeugen.
-- **Modellwahl** – Dropdown aller in opencode verfügbaren Modelle; Analysen laufen immer
-  über opencode.
-- **Live-Log** – jeder Prozessschritt in Echtzeit, fehleranalysetaugliche Logdateien.
-- **Auswertung** – Treffer pro Suchtag, Trichter (gefunden → beworben → Antwort → Interview → Angebot), Fit-Verteilung.
-- **Zwei Themes** – Hell und Dunkel (Umschalter oben rechts), minimalistisch und ruhig.
-- **Hilfe an Bord** – „Über & Spenden" erklärt Projektziel, Bedienung und Sicherheit.
-- **Sicher** – Zugangsdaten im OS-Keyring, kein Secret im Repository, kein Telemetrie.
+- **Find jobs** – start a search with one button; new postings are found, de-duplicated
+  and stored in the database.
+- **One view for everything** – a filterable list of all jobs on the left (live filters),
+  the detail panel on the right with fit rationale, description, location/remote, status,
+  links to the posting and company, plus the related emails.
+- **Track applications** – connect a mailbox (Gmail, Outlook, GMX, WEB.DE, STRATO, IONOS,
+  mailbox.org, Posteo, Yahoo, iCloud, Zoho, Fastmail or your own server); mail is read
+  read-only via IMAP and the status is assessed by the LLM.
+- **Documents** – keep CV, references, work samples and reference cover letters in one
+  place, have them reviewed/improved by the LLM and generate cover letters.
+- **Model choice** – dropdown of every model available in opencode; analysis always runs
+  through opencode.
+- **Live log** – every process step in real time, with logs you can debug.
+- **Analytics** – hits per search day, funnel (found → applied → response → interview → offer), fit distribution.
+- **Two themes** – light and dark (toggle top right), minimal and calm.
+- **Help built in** – "About & Donate" explains the project goal, how to use it and security.
+- **Secure** – credentials in the OS keyring, no secrets in the repository, no telemetry.
 
-## Dokumentation
+## Documentation
 
-- [Arbeitsprobe (PDF)](docs/MalochBot-Arbeitsprobe.pdf) — Projekt und Denkweise
-- [Technische Dokumentation](docs/DOKUMENTATION.md) · [PDF](docs/MalochBot-Dokumentation.pdf)
+- [Work sample (PDF, German)](docs/MalochBot-Arbeitsprobe.pdf) — the project and how it was approached
+- [Technical documentation (German)](docs/DOKUMENTATION.md) · [PDF](docs/MalochBot-Dokumentation.pdf)
 
 ## Screenshots
 
-> Firmennamen in den Screenshots sind unkenntlich gemacht (siehe `tools/shots.js`).
+> Company names in the screenshots are blurred out (see `tools/shots.js`).
 
-**Jobliste mit Detailfenster (dunkel)**
-![Jobliste](docs/screenshots/02-jobs-dark-detail.png)
+**Job list with detail panel (dark)**
+![Job list](docs/screenshots/02-jobs-dark-detail.png)
 
-**Gefilterte Jobliste (dunkel)**
-![Gefilterte Liste](docs/screenshots/03-jobs-dark-filter-remote.png)
+**Filtered job list (dark)**
+![Filtered list](docs/screenshots/03-jobs-dark-filter-remote.png)
 
-**Auswertung (dunkel)**
-![Statistiken](docs/screenshots/06-stats-dark.png)
+**Analytics (dark)**
+![Statistics](docs/screenshots/06-stats-dark.png)
 
-**Unterlagen (dunkel)**
-![Unterlagen](docs/screenshots/08-documents-dark.png)
+**Documents (dark)**
+![Documents](docs/screenshots/08-documents-dark.png)
 
-**Hilfe & Projektziel (hell)**
-![Über & Hilfe](docs/screenshots/12-about-light.png)
+**Help & project goal (light)**
+![About & help](docs/screenshots/12-about-light.png)
 
-Weitere Ansichten (hell/dunkel, gefiltert) liegen in [`docs/screenshots/`](docs/screenshots/).
+More views (light/dark, filtered) live in [`docs/screenshots/`](docs/screenshots/).
 
 ## Installation
 
 ### Linux / macOS
 ```bash
 cd MalochBot
-./install.sh     # installiert opencode (falls nötig), Python-Deps, Datenbank
-./run.sh         # startet den Server und öffnet http://127.0.0.1:8765
+./install.sh     # installs opencode (if needed), Python deps, database
+./run.sh         # starts the server and opens http://127.0.0.1:8765
 ```
 
 ### Windows
@@ -80,79 +80,77 @@ install.bat
 run.bat
 ```
 
-Die Installer prüfen/installieren **opencode**, richten die **Websuche (MCP)** ein, legen
-eine virtuelle Umgebung an und initialisieren die Datenbank. Danach im Browser unter
-**Einstellungen** Modell und Mailkonto einrichten (einmalig).
+The installers check/install **opencode**, set up the **web search (MCP)** servers, create
+a virtual environment and initialise the database. Then, in the browser under **Settings**,
+pick a model and connect your mailbox (one-time setup).
 
-## Websuche (MCP) – wichtig für die Jobsuche
+## Web search (MCP) — required for job search
 
-Die Jobsuche lässt das Modell im Web recherchieren. Dafür braucht opencode die MCP-Server
-**brave-search** (Websuche) und **fetch**. Ohne sie findet die Suche nichts und bricht mit
-„Keine auswertbare JSON-Antwort" ab.
+The job search asks the model to research the web. For that, opencode needs the MCP servers
+**brave-search** (web search) and **fetch**. Without them the search finds nothing and fails
+with "no parseable JSON response".
 
-- `scripts/setup_opencode_mcp.sh` (Linux/macOS) bzw. `scripts/setup_opencode_mcp.bat`
-  (Windows) tragen die MCP-Server in `~/.config/opencode/opencode.json` ein — der Installer
-  ruft das automatisch auf.
-- Benötigt **Node.js 20+** (für `npx`/brave-search) und **uv** (für `uvx`/fetch). Fehlen sie,
-  versucht das Skript eine Installation nach `~/.local/tools` (über micromamba bzw. den
-  uv-Installer); sonst bitte [Node.js](https://nodejs.org) und
-  [uv](https://docs.astral.sh/uv/) nachinstallieren.
-- **Brave-API-Key** (kostenloser Tarif auf https://brave.com/search/api/) wird beim Setup
-  abgefragt und lokal in der opencode-Config (0600) gespeichert. Ohne Key bleibt die
-  Websuche deaktiviert.
-- Läuft MalochBot als **systemd-Dienst**, muss der Dienst-PATH die Binärdateien enthalten,
-  z. B. `Environment=PATH=/home/USER/.opencode/bin:/home/USER/.local/tools/bin:/usr/local/bin:/usr/bin:/bin`.
+- `scripts/setup_opencode_mcp.sh` (Linux/macOS) or `scripts/setup_opencode_mcp.bat`
+  (Windows) register the MCP servers in `~/.config/opencode/opencode.json` — the installer
+  runs this automatically.
+- Requires **Node.js 20+** (for `npx`/brave-search) and **uv** (for `uvx`/fetch). If missing,
+  the script attempts to install them into `~/.local/tools` (via micromamba or the uv
+  installer); otherwise please install [Node.js](https://nodejs.org) and
+  [uv](https://docs.astral.sh/uv/) yourself.
+- A **Brave API key** (free tier at https://brave.com/search/api/) is requested during setup
+  and stored locally in the opencode config (0600). Without a key, web search stays disabled.
+- If MalochBot runs as a **systemd service**, the service PATH must include the binaries,
+  e.g. `Environment=PATH=/home/USER/.opencode/bin:/home/USER/.local/tools/bin:/usr/local/bin:/usr/bin:/bin`.
 
-## Betrieb
+## Running
 
-- `run.sh`/`run.bat` beenden eine laufende Instanz und starten den Server neu
-  (keine Doppel-Instanzen). Für den Dauerbetrieb auf einem Server eignet sich ein
-  systemd-Service (siehe unten).
-- **Manuell beenden:** Einstellungen → „Server beenden".
-- Die **Modellliste** wird live vom System geladen (`opencode models`), nach Anbieter
-  gruppiert.
+- `run.sh`/`run.bat` stop any running instance and start the server again (no duplicate
+  instances). For always-on operation on a server, a systemd service is a good fit
+  (see below).
+- **Stop manually:** Settings → "Stop server".
+- The **model list** is loaded live from the system (`opencode models`), grouped by provider.
 
-## Da­uerbetrieb (Server)
+## Always-on operation (server)
 
-Für den dauerhaften Betrieb (z. B. auf VEGA) `MALOCHBOT_HOST=0.0.0.0` setzen, damit der
-Dienst im Netz erreichbar ist. Ein systemd-Unit liegt unter `deploy/malochbot.service`
-(nutzerbezogen, `systemctl --user`) und `deploy/malochbot-system.service` (systemweit).
+For permanent operation (e.g. on a home server) set `MALOCHBOT_HOST=0.0.0.0` so the service
+is reachable on the network. A systemd unit lives at `deploy/malochbot.service` (user-scoped,
+`systemctl --user`) and `deploy/malochbot-system.service` (system-wide).
 
-## Voraussetzungen
+## Requirements
 
 - Python 3.10+
-- [opencode](https://opencode.ai) (die Installer versuchen es mitzuinstallieren)
-- **Node.js 20+** und **uv** für die Websuche-MCPs (brave-search/fetch; siehe oben)
-- Optional LibreOffice für PDF-Export von Anschreiben (nicht nötig – PDFs entstehen in Python)
+- [opencode](https://opencode.ai) (the installers try to install it)
+- **Node.js 20+** and **uv** for the web-search MCPs (brave-search/fetch; see above)
+- Optional LibreOffice for PDF export of cover letters (not required — PDFs are produced in Python)
 
-## Architektur
+## Architecture
 
 ```
 MalochBot/
   app/
-    main.py          FastAPI-App, Routen, SSE-Logstream
-    db.py            SQLite-Schema und Zugriffe (alle Jobdaten)
-    secrets.py       Secret-Store (Keyring / verschlüsselte Datei)
-    logbus.py        Live-Logs + Persistenz
-    opencode_adapter.py  Aufruf der opencode-CLI
-    providers.py     Mail-Anbieter-Presets
-    import_legacy.py Import bestehender Daten
+    main.py          FastAPI app, routes, SSE log stream
+    db.py            SQLite schema and access (all job data)
+    secrets.py       Secret store (keyring / encrypted file)
+    logbus.py        Live logs + persistence
+    opencode_adapter.py  Calls the opencode CLI
+    providers.py     Mail provider presets
+    import_legacy.py Import existing data
     engines/         search, tracking, documents
-    templates/       Oberfläche
+    templates/       UI
     static/          CSS/JS
-  data/              Laufzeitdaten (DB, Uploads, Logs) – nicht im Repo
+  data/              Runtime data (DB, uploads, logs) – not in the repo
 ```
 
-## Sicherheit
+## Security
 
-Siehe [SECURITY.md](SECURITY.md). Mailpasswörter und Keys werden nie im Repository
-gespeichert. Der Code ist vollständig einsehbar; es findet kein Telemetrie-Versand statt.
+See [SECURITY.md](SECURITY.md). Mail passwords and keys are never stored in the repository.
+The code is fully auditable and no telemetry is sent.
 
-## Lizenz
+## License
 
-MIT – siehe [LICENSE](LICENSE).
+MIT – see [LICENSE](LICENSE).
 
-## Unterstützen
+## Support
 
-Wenn dir MalochBot Zeit spart:
+If MalochBot saves you time:
 **PayPal: [alexander.riedel@eyedea3d.com](https://www.paypal.com/donate?business=alexander.riedel%40eyedea3d.com&item_name=MalochBot)** ❤️
