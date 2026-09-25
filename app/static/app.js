@@ -225,9 +225,9 @@ function mbEsc(s) {
           "</select></div>" +
         (j.cover_letter_name
           ? '<a class="btn btn-primary col-c" href="/generated/' + mbEsc(j.cover_letter_name) + '" download>Anschreiben herunterladen (PDF)</a>' +
-            '<div class="field span-ab"><label class="small">Anschreiben-Feedback (optional – leer lassen = neu erzeugen)</label>' +
-            '<textarea id="cover-feedback" rows="2" placeholder="z. B. kürzer, konkreter auf die Rolle eingehen"></textarea></div>' +
-            '<button class="btn col-c" type="button" onclick="mbCoverAction(' + j.id + ')">Neu erzeugen</button>'
+            '<div class="span-all small muted">Anschreiben-Feedback (optional – leer lassen = neu erzeugen)</div>' +
+            '<div class="field span-ab"><textarea id="cover-feedback" rows="2" placeholder="z. B. kürzer, konkreter auf die Rolle eingehen"></textarea></div>' +
+            '<button class="btn col-c stretch" type="button" onclick="mbCoverAction(' + j.id + ')">Neu erzeugen</button>'
           : '<button class="btn btn-primary col-c" type="button" onclick="mbMakeCover(' + j.id + ')">' + L("cover", "Anschreiben erzeugen") + "</button>") +
       "</div>";
     renderList();
