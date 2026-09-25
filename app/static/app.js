@@ -655,7 +655,7 @@ function mbFunnel(container, items) {
 
   const fitItems = s.fit || [];
   mbBars(document.getElementById("chart-fit"), fitItems, {
-    colorFn: function (it, i, len) { return mbHexLerp("#c7d2fe", "#4338ca", len <= 1 ? 0 : i / (len - 1)); },
+    colorFn: function (it, i, len) { return mbHexLerp(mbCssVar("--faint", "#a1a1aa"), accent, len <= 1 ? 0 : i / (len - 1)); },
   });
   const fm = document.getElementById("fit-meta");
   if (fm) fm.textContent = (LBL.fit_avg || "Ø Fit") + " " + s.fit_avg + " · " + (LBL.fit_median || "Median") + " " + s.fit_median + " · " + s.fit_n + " " + (LBL.fit_scored || "bewertet");
