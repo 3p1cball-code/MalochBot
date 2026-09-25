@@ -300,10 +300,9 @@ def run_tracking(run_id: int, model: str = "") -> dict:
             logbus.log(run_id, "info", "Job #%d: Status manuell gesetzt - bleibt unveraendert." % jid)
             continue
 
-        # Ohne Rueckmeldung ist KEIN Beweis fuer eine Bewerbung -> nur "gefunden".
-        if phase == "Ohne Rueckmeldung":
-            if job["status"] in ("beworben", "gefunden"):
-                db.execute("UPDATE jobs SET status='gefunden' WHERE id=?", (jid,))
+        # Nur mit Beleg anwenden; ohne Mail in diesem Lauf unveraendert lassen.
+        # (Inkrementelle Scans sehen nur neue Mails - kein Herabstufen alter Bewerbungen.)
+        if phase == "Ohne Rueckmeldung" or not job_mails.get(jid):
             continue
 
         new_status = config.PHASE_TO_STATUS.get(phase, "beworben")
