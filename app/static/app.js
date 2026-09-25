@@ -255,9 +255,35 @@ function mbEsc(s) {
 
   const layout = document.querySelector(".jobs-layout");
   const splitter = document.getElementById("splitter");
+  const colEls = Array.prototype.slice.call(document.querySelectorAll(".jobs-layout colgroup col"));
+  const COL_KEY = "mb-col-w";
+
+  function colSum() {
+    return colEls.reduce(function (a, c) { return a + (parseInt(c.style.width, 10) || 0); }, 0);
+  }
+  function setDetailPx(px) {
+    if (!layout) return;
+    const w = layout.getBoundingClientRect().width;
+    px = Math.max(320, Math.min(px, w - 240));
+    layout.style.setProperty("--detail-w", px + "px");
+  }
+
   if (layout && splitter) {
-    const saved = localStorage.getItem("mb-list-w");
-    if (saved) layout.style.setProperty("--list-w", saved);
+    const savedDetail = parseInt(localStorage.getItem("mb-detail-w") || "", 10);
+    const rect = layout.getBoundingClientRect();
+    if (savedDetail) {
+      setDetailPx(savedDetail);
+    } else {
+      // Default: Grenze auf Hoehe des Remote-Feldes, aber nie schmaler als die Spalten.
+      let listW = colSum() + 2;
+      const remote = document.getElementById("f-remote");
+      if (remote) {
+        const rx = remote.getBoundingClientRect().left - rect.left;
+        if (rx > 200) listW = Math.max(listW, rx);
+      }
+      setDetailPx(rect.width - listW - 12);
+    }
+
     let dragging = false;
     splitter.addEventListener("pointerdown", function (e) {
       dragging = true;
@@ -267,20 +293,67 @@ function mbEsc(s) {
     });
     splitter.addEventListener("pointermove", function (e) {
       if (!dragging) return;
-      const rect = layout.getBoundingClientRect();
-      let px = e.clientX - rect.left;
-      px = Math.max(280, Math.min(rect.width - 320, px));
-      layout.style.setProperty("--list-w", px + "px");
+      const r = layout.getBoundingClientRect();
+      setDetailPx(r.right - e.clientX - 6);
     });
     const stopDrag = function () {
       if (!dragging) return;
       dragging = false;
       splitter.classList.remove("dragging");
-      try { localStorage.setItem("mb-list-w", layout.style.getPropertyValue("--list-w")); } catch (e) {}
+      try { localStorage.setItem("mb-detail-w", layout.style.getPropertyValue("--detail-w")); } catch (e) {}
     };
     splitter.addEventListener("pointerup", stopDrag);
     splitter.addEventListener("pointercancel", stopDrag);
   }
+
+  // Spaltenbreiten per Drag anpassen (bleibt gespeichert).
+  (function initColResize() {
+    const table = document.querySelector("table.jobs-table");
+    if (!table || !colEls.length) return;
+    try {
+      const saved = JSON.parse(localStorage.getItem(COL_KEY) || "null");
+      if (Array.isArray(saved) && saved.length === colEls.length) {
+        saved.forEach(function (w, i) { if (w) colEls[i].style.width = w + "px"; });
+      }
+    } catch (e) {}
+    function persist() {
+      try {
+        localStorage.setItem(COL_KEY, JSON.stringify(colEls.map(function (c) {
+          return parseInt(c.style.width, 10) || 0;
+        })));
+      } catch (e) {}
+    }
+    const ths = Array.prototype.slice.call(table.querySelectorAll("thead th"));
+    ths.forEach(function (th, i) {
+      if (i >= colEls.length - 1) return;
+      const handle = document.createElement("span");
+      handle.className = "col-resize";
+      handle.title = "Spaltenbreite ziehen";
+      th.appendChild(handle);
+      let active = false, startX = 0, startW = 0;
+      handle.addEventListener("pointerdown", function (e) {
+        active = true;
+        startX = e.clientX;
+        startW = th.getBoundingClientRect().width;
+        th.classList.add("resizing");
+        try { handle.setPointerCapture(e.pointerId); } catch (err) {}
+        e.preventDefault();
+        e.stopPropagation();
+      });
+      handle.addEventListener("pointermove", function (e) {
+        if (!active) return;
+        colEls[i].style.width = Math.max(56, startW + (e.clientX - startX)) + "px";
+      });
+      const stop = function () {
+        if (!active) return;
+        active = false;
+        th.classList.remove("resizing");
+        persist();
+      };
+      handle.addEventListener("pointerup", stop);
+      handle.addEventListener("pointercancel", stop);
+    });
+  })();
 
   renderList();
   const pre = window.MB_PRESELECT ? parseInt(window.MB_PRESELECT, 10) : null;
