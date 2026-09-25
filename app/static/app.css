@@ -360,10 +360,9 @@ footer.container { color: var(--muted); }
 header.nav .brand img.mark { display: block; width: 22px; height: 22px; border: 1px solid var(--line-strong); }
 
 /* Status-Filter als Checkboxen */
-.status-checks { display: flex; flex-wrap: wrap; gap: 6px 14px; padding-top: 3px; }
-.status-checks .chk { display: flex; align-items: center; gap: 5px; font-size: 12.5px; cursor: pointer; white-space: nowrap; color: var(--muted); }
-.status-checks input { width: 14px; height: 14px; }
-.status-checks .chk-dot { width: 8px; height: 8px; border-radius: 1px; display: inline-block; margin-right: 1px; }
+.status-checks { display: flex; flex-wrap: wrap; gap: 8px 16px; padding-top: 3px; }
+.status-checks .chk { display: flex; align-items: center; gap: 7px; font-size: 12.5px; cursor: pointer; white-space: nowrap; color: var(--muted); }
+.status-checks input { width: 17px; height: 17px; }
 
 /* Dokument: Fuer-Suche-Toggle */
 .use-toggle { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700;
