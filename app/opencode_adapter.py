@@ -79,10 +79,12 @@ def clean_text(text: str) -> str:
 
 
 def extract_json(text: str):
-    """Robuste JSON-Extraktion: findet das (letzte) gueltige Objekt mit 'jobs'.
+    """Robuste JSON-Extraktion: findet das gueltige Modell-Objekt mit 'jobs'/'mails'.
 
-    Die opencode-Ausgabe enthaelt auch Tool-Aufrufe wie {"query": ...}; ein simples
-    'erstes { bis letztes }' scheitert daran.
+    Die opencode-Ausgabe enthaelt auch die angehaengte Kontextdatei (ebenfalls mit
+    'jobs'/'mails', aber ohne 'phase'/'job_id') und Tool-Aufrufe wie {"query": ...}.
+    Deshalb wird bevorzugt das Objekt gewaehlt, dessen Eintraege 'phase' oder
+    'job_id' tragen (= Modellantwort), vorzugsweise das letzte davon.
     """
     text = ANSI.sub("", text or "")
     decoder = json.JSONDecoder()
@@ -99,9 +101,25 @@ def extract_json(text: str):
             continue
         objects.append(obj)
         index = start + end
-    for obj in objects:
-        if isinstance(obj, dict) and ("jobs" in obj or "mails" in obj):
-            return obj
+
+    def _model_shaped(obj) -> bool:
+        if not isinstance(obj, dict):
+            return False
+        for key in ("jobs", "mails"):
+            lst = obj.get(key)
+            if isinstance(lst, list):
+                for item in lst:
+                    if isinstance(item, dict) and ("phase" in item or "job_id" in item):
+                        return True
+        return False
+
+    candidates = [o for o in objects
+                  if isinstance(o, dict) and ("jobs" in o or "mails" in o)]
+    shaped = [o for o in candidates if _model_shaped(o)]
+    if shaped:
+        return shaped[-1]
+    if candidates:
+        return candidates[-1]
     for obj in objects:
         if isinstance(obj, list) and obj and isinstance(obj[0], dict) and "company" in obj[0]:
             return {"jobs": obj}
