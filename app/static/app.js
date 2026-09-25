@@ -136,7 +136,7 @@ function mbEsc(s) {
     const items = activeJobs();
     document.getElementById("job-count").textContent = "(" + items.length + ")";
     tbody.innerHTML = items.map(function (j) {
-      const badge = '<span class="badge" style="--bc:' + (colors[j.status] || "#94a3b8") + '">' +
+      const badge = '<span class="badge badge-status" style="--bc:' + (colors[j.status] || "#94a3b8") + '">' +
         (labels[j.status] || j.status) + "</span>";
       return '<tr class="' + (j.id === currentId ? "active" : "") + '" data-id="' + j.id + '">' +
         '<td class="co">' + mbEsc(j.company) + "</td>" +
@@ -159,7 +159,7 @@ function mbEsc(s) {
     const j = jobs.find(function (x) { return x.id === id; });
     const box = document.getElementById("job-detail");
     if (!j) return;
-    const badge = '<span class="badge" style="--bc:' + (colors[j.status] || "#94a3b8") + '">' +
+    const badge = '<span class="badge badge-status" style="--bc:' + (colors[j.status] || "#94a3b8") + '">' +
       (labels[j.status] || j.status) + "</span>";
     const links = [];
     if (j.url) links.push('<a class="btn btn-sm" href="' + mbEsc(j.url) + '" target="_blank" rel="noopener">' + L("job", "Stellenanzeige") + "</a>");

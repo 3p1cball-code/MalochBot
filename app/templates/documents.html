@@ -23,7 +23,7 @@
 {% if group %}
 <h2>{{ doc_labels[kind] }} <span class="muted small">({{ group|length }})</span></h2>
 <div class="table-wrap" style="margin-bottom:18px"><table class="table docs-table">
-  <colgroup><col style="width:38%"><col style="width:16%"><col style="width:20%"><col style="width:26%"></colgroup>
+  <colgroup><col style="width:34%"><col style="width:15%"><col style="width:19%"><col style="width:32%"></colgroup>
   <tr><th>{{ t('docs.file') }}</th><th>{{ t('docs.kind') }}</th><th>Verwendung</th><th></th></tr>
   {% for d in group %}
   <tr>
@@ -51,16 +51,16 @@
       </label>
       {% endif %}
     </td>
-    <td style="white-space:nowrap">
+    <td class="doc-actions">
       {% set ext = d.name.lower().rsplit('.', 1)[-1] %}
       {% if ext in ['png', 'jpg', 'jpeg', 'webp'] %}
-      <a class="btn btn-sm" href="/documents/{{ d.id }}/crop">Bearbeiten</a>
+      <a class="btn btn-sm doc-act" href="/documents/{{ d.id }}/crop">Bearbeiten</a>
       {% endif %}
-      <button class="btn btn-sm" type="button" onclick="mbDocEval({{ d.id }})">{{ t('docs.evaluate') }}</button>
-      <button class="btn btn-sm" type="button" onclick="mbDocImprove({{ d.id }})">{{ t('docs.improve') }}</button>
+      <button class="btn btn-sm doc-act" type="button" onclick="mbDocEval({{ d.id }})">{{ t('docs.evaluate') }}</button>
+      <button class="btn btn-sm doc-act" type="button" onclick="mbDocImprove({{ d.id }})">{{ t('docs.improve') }}</button>
       <form method="post" action="/documents/{{ d.id }}/delete" class="inline-form"
             onsubmit="return confirm('{{ t('docs.confirm_delete') }}')">
-        <button class="btn btn-sm btn-danger" type="submit">{{ t('common.delete') }}</button>
+        <button class="btn btn-sm doc-act btn-danger" type="submit">{{ t('common.delete') }}</button>
       </form>
     </td>
   </tr>
