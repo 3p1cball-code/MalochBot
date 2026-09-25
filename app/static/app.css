@@ -236,7 +236,7 @@ code { background: var(--panel-2); border: 1px solid var(--line); padding: 1px 6
 
 /* Breite Ansicht + Jobs-Tabelle */
 .container.wide { max-width: none; }
-.jobs-layout { display: grid; grid-template-columns: minmax(0, 1fr) 12px minmax(320px, var(--detail-w, 560px)); gap: 0; align-items: start; }
+.jobs-layout { display: grid; grid-template-columns: minmax(240px, 1fr) 12px minmax(320px, var(--detail-w, 560px)); gap: 0; align-items: start; }
 @media (max-width: 720px) { .jobs-layout { grid-template-columns: 1fr; } }
 
 .jobs-pane { background: var(--panel); border: 1px solid var(--line); border-radius: 0; overflow: hidden; }
