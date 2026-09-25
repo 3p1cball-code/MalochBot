@@ -7,7 +7,6 @@ import shutil
 import signal
 import threading
 import time
-from datetime import date, timedelta
 
 from fastapi import FastAPI, Request, UploadFile, File, Form
 from fastapi.responses import (
@@ -220,21 +219,7 @@ def stats(request: Request):
 
     found_rows = db.query("SELECT substr(found_at,1,10) d, COUNT(*) n FROM jobs "
                           "WHERE found_at<>'' GROUP BY d ORDER BY d")
-    resp_rows = db.query("SELECT substr(response_at,1,10) d, COUNT(*) n FROM applications "
-                         "WHERE response_at<>'' GROUP BY d ORDER BY d")
-    fmap = {r["d"]: r["n"] for r in found_rows}
-    rmap = {r["d"]: r["n"] for r in resp_rows}
-    daily = []
-    keys = [k for k in list(fmap) + list(rmap) if k]
-    if keys:
-        start, end = date.fromisoformat(min(keys)), date.fromisoformat(max(keys))
-        if (end - start).days > 400:
-            start = end - timedelta(days=400)
-        cur = start
-        while cur <= end:
-            k = cur.isoformat()
-            daily.append({"d": k, "found": fmap.get(k, 0), "responses": rmap.get(k, 0)})
-            cur += timedelta(days=1)
+    daily = [{"d": r["d"], "found": r["n"]} for r in found_rows]
 
     fits = [(r["score"] or 0) for r in db.query("SELECT score FROM jobs") if (r["score"] or 0) > 0]
     fit = {("%d-%d" % (i, i + 9)): 0 for i in range(0, 90, 10)}
@@ -245,8 +230,6 @@ def stats(request: Request):
     fit_sorted = sorted(fits)
     fit_median = fit_sorted[len(fit_sorted) // 2] if fit_sorted else 0
     fit_avg = round(sum(fits) / len(fits)) if fits else 0
-
-    sources = db.query("SELECT source, COUNT(*) n FROM jobs GROUP BY source ORDER BY n DESC")
     lang = db.get_setting("language", "de")
     total = sum(status_counts.values())
     applied = sum(v for k, v in status_counts.items()
@@ -268,7 +251,6 @@ def stats(request: Request):
         "daily": daily,
         "fit": [{"label": k, "n": v} for k, v in fit.items()],
         "fit_avg": fit_avg, "fit_median": fit_median, "fit_n": len(fits),
-        "sources": [{"label": r["source"] or "?", "n": r["n"]} for r in sources],
         "funnel": [
             {"key": "found", "n": total},
             {"key": "applied", "n": applied},

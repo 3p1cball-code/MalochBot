@@ -620,22 +620,16 @@ function mbFunnel(container, items) {
       '</div><div class="lbl">' + c.l + '</div>' + (c.sub ? '<div class="sub muted">' + c.sub + "</div>" : "") + "</div>";
   }).join("");
 
-  // Tages-Liniendiagramm
+  // Tages-Liniendiagramm (nur Tage mit Suchlauf)
   const daily = s.daily || [];
-  mbLineChart(document.getElementById("chart-daily"), daily, {
-    color: accent, secondColor: teal, second: true, labels: LBL,
-  });
+  mbLineChart(document.getElementById("chart-daily"), daily, { color: accent, labels: LBL, height: 260 });
   const sub = document.getElementById("daily-sub");
   if (sub && daily.length) {
     const sum = daily.reduce(function (a, p) { return a + (p.found || 0); }, 0);
     const mx = Math.max.apply(null, daily.map(function (p) { return p.found || 0; }));
-    sub.textContent = daily.length + " Tage · " + sum + " " + (LBL.found || "Treffer") + " · Ø " +
-      (sum / daily.length).toFixed(1) + "/Tag · max " + mx;
+    sub.textContent = daily.length + " Suchtage · " + sum + " " + (LBL.found || "Treffer") +
+      " · Ø " + (sum / daily.length).toFixed(1) + " · max " + mx;
   }
-  const legend = document.getElementById("daily-legend");
-  if (legend) legend.innerHTML =
-    '<span class="lg"><i style="background:' + accent + '"></i>' + (LBL.found || "Gefunden") + "</span>" +
-    '<span class="lg"><i style="background:' + teal + '"></i>' + (LBL.responses || "Antworten") + "</span>";
 
   const sc = s.status_counts, sl = s.status_labels, scol = s.status_colors;
   const statusItems = Object.keys(sc).filter(function (k) { return sc[k] > 0; }).map(function (k) {
@@ -660,6 +654,4 @@ function mbFunnel(container, items) {
   });
   const fm = document.getElementById("fit-meta");
   if (fm) fm.textContent = (LBL.fit_avg || "Ø Fit") + " " + s.fit_avg + " · " + (LBL.fit_median || "Median") + " " + s.fit_median + " · " + s.fit_n + " " + (LBL.fit_scored || "bewertet");
-
-  mbBars(document.getElementById("chart-sources"), s.sources || [], { color: accent });
 })();
