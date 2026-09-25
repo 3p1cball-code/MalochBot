@@ -1,32 +1,48 @@
 {% extends "base.html" %}
-{% set page_title = "Über & Spenden" %}
+{% set page_title = t('about.title') %}
 {% block content %}
 <h1>{{ t('about.title') }}</h1>
 <p class="subtitle">{{ t('about.tagline') }}</p>
 
 <div class="grid cols-2">
   <div class="card">
-    <h2 style="margin-top:0">Was MalochBot macht</h2>
-    <ul>
-      <li>Neue, passende Jobs finden – per opencode/LLM, mit Deduplizierung.</li>
-      <li>Alle Jobs in einer Datenbank, Detailseite je Stelle, filterbar nach Zeitraum.</li>
-      <li>Bewerbungen tracken: Mails werden per IMAP gelesen und der Status per LLM bewertet.</li>
-      <li>Unterlagen zentral ablegen, per LLM bewerten und Anschreiben erzeugen.</li>
-      <li>Live-Log jedes Prozesses, farbcodierte Übersichten.</li>
-    </ul>
-    <h2>Open Source</h2>
-    <p>Lizenz: MIT. Der komplette Code ist einsehbar – jede Netzwerkaktion ist nachvollziehbar.
-       Kein Telemetrie-Versand.</p>
+    <h2 style="margin-top:0">{{ t('about.why_title') }}</h2>
+    <p>{{ t('about.why') }}</p>
   </div>
-
   <div class="card">
-    <h2 style="margin-top:0">Sicherheit</h2>
-    <p>Zugangsdaten (Mailpasswort, API-Keys) liegen im Secret-Store
-       (<strong>{{ secret_backend }}</strong>) – nie im Repository. Mailzugriff ist read-only und inkrementell.</p>
-    <p><strong>opencode:</strong> {{ "verfügbar" if opencode_ok else "nicht gefunden – bitte installieren" }}</p>
+    <h2 style="margin-top:0">{{ t('about.features_title') }}</h2>
+    <ul>
+      <li>{{ t('about.f1') }}</li>
+      <li>{{ t('about.f2') }}</li>
+      <li>{{ t('about.f3') }}</li>
+      <li>{{ t('about.f4') }}</li>
+      <li>{{ t('about.f5') }}</li>
+    </ul>
+  </div>
+</div>
 
-    <h2>Spenden</h2>
-    <p>Wenn dir MalochBot Zeit spart, freue ich mich über eine kleine Anerkennung.</p>
+<div class="card" style="margin-top:18px">
+  <h2 style="margin-top:0">{{ t('about.help_title') }}</h2>
+  <ul>
+    <li>{{ t('about.h1') }}</li>
+    <li>{{ t('about.h2') }}</li>
+    <li>{{ t('about.h3') }}</li>
+    <li>{{ t('about.h4') }}</li>
+    <li>{{ t('about.h5') }}</li>
+    <li>{{ t('about.h6') }}</li>
+  </ul>
+</div>
+
+<div class="grid cols-2" style="margin-top:18px">
+  <div class="card">
+    <h2 style="margin-top:0">{{ t('about.security_title') }}</h2>
+    <p>{{ t('about.security') }}</p>
+    <p class="small muted">Secret-Store: <strong>{{ secret_backend }}</strong> ·
+      opencode: {{ "OK" if opencode_ok else "not found" }}</p>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">{{ t('about.donate_title') }}</h2>
+    <p>{{ t('about.donate_text') }}</p>
     <p>
       <a class="btn btn-primary" href="{{ donate_paypal }}" target="_blank" rel="noopener">{{ t('about.donate') }}</a>
       <a class="btn" href="mailto:{{ donate_email }}">{{ donate_email }}</a>

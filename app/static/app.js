@@ -194,16 +194,16 @@ function mbEsc(s) {
       '<p class="subtitle" style="margin-top:2px"><strong>' + mbEsc(j.company) + "</strong>" +
         (j.location ? " · " + mbEsc(j.location) : "") + (j.remote ? ' · <span class="remote">remote</span>' : "") + "</p>" +
       '<div class="filters" style="margin-bottom:12px">' + badge +
-        (j.manual ? '<span class="tag" style="border-color:#f59e0b;color:#b45309">manuell gesetzt</span>' : "") +
-        (j.score ? '<span class="pill">Fit ' + j.score + (j.fit ? " · " + mbEsc(j.fit) : "") + "</span>" : "") +
-        '<span class="tag">Quelle: ' + mbEsc(j.source) + "</span>" +
-        (j.published_at ? '<span class="tag">Veröffentlicht: ' + mbEsc(j.published_at) + "</span>" : "") +
-        '<span class="tag">Gefunden: ' + mbEsc((j.found_at || "").slice(0, 10)) + "</span>" +
+        (j.manual ? '<span class="tag" style="border-color:#f59e0b;color:#b45309">' + L("manual_set", "manuell gesetzt") + "</span>" : "") +
+        (j.score ? '<span class="pill">' + L("fit", "Fit") + " " + j.score + (j.fit ? " · " + mbEsc(j.fit) : "") + "</span>" : "") +
+        '<span class="tag">' + L("source_lbl", "Quelle") + ": " + mbEsc(j.source) + "</span>" +
+        (j.published_at ? '<span class="tag">' + L("published", "Veröffentlicht") + ": " + mbEsc(j.published_at) + "</span>" : "") +
+        '<span class="tag">' + L("found_lbl", "Gefunden") + ": " + mbEsc((j.found_at || "").slice(0, 10)) + "</span>" +
         links.join(" ") + "</div>" +
       "<h3>" + L("why", "Warum der Job passt") + "</h3><p>" + (mbEsc(j.rationale) || "<span class='muted'>—</span>") + "</p>" +
       "<h3>" + L("what", "Was die Position ausmacht") + "</h3><p>" + (mbEsc(j.description) || "<span class='muted'>—</span>") + "</p>" +
       (j.phase ? "<h3>" + L("appstatus", "Bewerbungsstatus") + '</h3><p><span class="pill">' + mbEsc(j.phase) + "</span> " +
-        (j.response_at ? '<span class="small muted">Antwort: ' + mbEsc(j.response_at) + "</span>" : "") +
+        (j.response_at ? '<span class="small muted">' + L("answer_lbl", "Antwort") + ": " + mbEsc(j.response_at) + "</span>" : "") +
         (j.app_notes ? "<br><span class=\"small\">" + mbEsc(j.app_notes) + "</span>" : "") + "</p>" : "") +
       "<h3>" + L("history", "Verlauf & Mailverlauf") + "</h3>" +
       (timeline ? '<ul class="timeline">' + timeline + "</ul>" : "<p class=\"muted\">—</p>") +
@@ -216,18 +216,17 @@ function mbEsc(s) {
         "</form>" +
         (j.manual
           ? '<form method="post" action="/jobs/' + j.id + '/unlock" class="col-a">' +
-            '<button class="btn" type="submit">Automatische Status-Updates wieder aktivieren</button></form>'
-          : '<button class="btn col-a auto-on" type="button" disabled>Automatische Updates aktiv</button>') +
-        '<div class="field col-b"><label>Sprache des Anschreibens</label>' +
+            '<button class="btn" type="submit">' + L("auto_off", "Automatische Status-Updates wieder aktivieren") + "</button></form>"
+          : '<button class="btn col-a auto-on" type="button" disabled>' + L("auto_on", "Automatische Updates aktiv") + "</button>") +
+        '<div class="field col-b"><label>' + L("coverlang", "Sprache des Anschreibens") + '</label>' +
           '<select id="cover-lang">' +
-            '<option value="">Automatisch' + (j.language ? " (" + mbEsc(j.language) + ")" : "") + "</option>" +
+            '<option value="">' + L("auto", "Automatisch") + (j.language ? " (" + mbEsc(j.language) + ")" : "") + "</option>" +
             '<option value="de">Deutsch</option><option value="en">English</option>' +
           "</select></div>" +
         (j.cover_letter_name
-          ? '<a class="btn btn-primary col-c" href="/generated/' + mbEsc(j.cover_letter_name) + '" download>Anschreiben herunterladen (PDF)</a>' +
-            '<div class="span-all small muted">Anschreiben-Feedback (optional – leer lassen = neu erzeugen)</div>' +
-            '<div class="field span-ab"><textarea id="cover-feedback" rows="2" placeholder="z. B. kürzer, konkreter auf die Rolle eingehen"></textarea></div>' +
-            '<button class="btn col-c stretch" type="button" onclick="mbCoverAction(' + j.id + ')">Neu erzeugen</button>'
+          ? '<a class="btn btn-primary col-c" href="/generated/' + mbEsc(j.cover_letter_name) + '" download>' + L("dl_cover", "Anschreiben herunterladen (PDF)") + "</a>" +
+            '<div class="field span-ab"><textarea id="cover-feedback" rows="2" placeholder="' + L("feedback_ph", "z. B. kürzer, konkreter auf die Rolle eingehen") + '"></textarea></div>' +
+            '<button class="btn col-c stretch" type="button" onclick="mbCoverAction(' + j.id + ')">' + L("regen", "Neu erzeugen") + "</button>"
           : '<button class="btn btn-primary col-c" type="button" onclick="mbMakeCover(' + j.id + ')">' + L("cover", "Anschreiben erzeugen") + "</button>") +
       "</div>";
     renderList();
@@ -411,42 +410,43 @@ async function mbRun(url, body, opts) {
       body: new URLSearchParams(body || {}),
     });
     const data = await res.json();
-    if (!data.run_id) { mbRunBar(opts.error || "Start fehlgeschlagen.", "error"); return; }
-    mbRunBar(opts.running || "Verarbeitung läuft ...", "info");
+    if (!data.run_id) { mbRunBar(opts.error || mbT("start_error", "Start fehlgeschlagen."), "error"); return; }
+    mbRunBar(opts.running || (mbT("running", "Verarbeitung läuft") + " ..."), "info");
     const timer = setInterval(async () => {
       try {
         const run = await (await fetch("/api/runs/" + data.run_id)).json();
         if (run.status === "ok") {
           clearInterval(timer);
-          mbRunBar(opts.done || "Fertig.", "success");
+          mbRunBar(opts.done || mbT("done", "Fertig."), "success");
           if (opts.onDone) opts.onDone(run);
         } else if (run.status === "fehler") {
           clearInterval(timer);
           const msg = (run.result && (run.result.text || run.result.error)) || "unbekannter Fehler";
-          mbRunBar((opts.error || "Fehler: ") + msg, "error");
+          mbRunBar((opts.error || mbT("error", "Fehler: ")) + msg, "error");
         }
       } catch (e) { /* weiter pollen */ }
     }, 1500);
   } catch (e) {
-    mbRunBar("Netzwerkfehler.", "error");
+    mbRunBar(mbT("network", "Netzwerkfehler."), "error");
   }
 }
 
 function mbModelName() { return window.MB_MODEL || "LLM"; }
+function mbT(k, fb) { return (window.MB_T && window.MB_T[k]) || fb; }
 
 window.mbJobSearch = function () {
   const el = document.getElementById("search-extra");
   mbRun("/api/jobs/search", { extra: el ? el.value : "" }, {
-    running: "Neue Jobs werden gesucht (LLM: " + mbModelName() + ") ...",
-    done: "Suche abgeschlossen.", error: "Suche fehlgeschlagen: ",
+    running: mbT("search_running", "Neue Jobs werden gesucht") + " (LLM: " + mbModelName() + ") ...",
+    done: mbT("search_done", "Suche abgeschlossen."), error: mbT("search_fail", "Suche fehlgeschlagen: "),
     onDone: function () { location.reload(); },
   });
 };
 
 window.mbStatusUpdate = function () {
   mbRun("/api/applications/update", {}, {
-    running: "Status wird aktualisiert – Mails werden geprüft (LLM: " + mbModelName() + ") ...",
-    done: "Status aktualisiert.", error: "Aktualisierung fehlgeschlagen: ",
+    running: mbT("status_running", "Status wird aktualisiert") + " (LLM: " + mbModelName() + ") ...",
+    done: mbT("status_done", "Status aktualisiert."), error: mbT("status_fail", "Aktualisierung fehlgeschlagen: "),
     onDone: function () { location.reload(); },
   });
 };
@@ -456,12 +456,12 @@ window.mbMakeCover = function (id) {
   const langEl = document.getElementById("cover-lang");
   const lang = langEl ? langEl.value : "";
   mbRun("/api/jobs/" + id + "/cover-letter", { lang: lang }, {
-    running: "Anschreiben wird erzeugt (LLM: " + mbModelName() + ") ...",
-    error: "Anschreiben fehlgeschlagen: ",
+    running: mbT("cover_running", "Anschreiben wird erzeugt") + " (LLM: " + mbModelName() + ") ...",
+    error: mbT("cover_fail", "Anschreiben fehlgeschlagen: "),
     onDone: function (run) {
       const name = (run.result && run.result.datei || "").split("/").pop();
       if (name) j.cover_letter_name = name;
-      mbRunBar("Anschreiben für " + (j.company || "den Job") + " wurde erzeugt.", "success");
+      mbRunBar(mbT("cover_done", "Anschreiben wurde erzeugt."), "success");
       if (window.mbShowDetail) window.mbShowDetail(id);
     },
   });
@@ -470,17 +470,17 @@ window.mbMakeCover = function (id) {
 window.mbImproveCover = function (id) {
   const ta = document.getElementById("cover-feedback");
   const feedback = ta ? ta.value : "";
-  if (!feedback.trim()) { mbRunBar("Bitte Feedback eingeben.", "error"); return; }
+  if (!feedback.trim()) { mbRunBar(mbT("cover_need_feedback", "Bitte Feedback eingeben."), "error"); return; }
   const j = (window.mbJobs || []).find(function (x) { return x.id === id; }) || {};
   const langEl = document.getElementById("cover-lang");
   const lang = langEl ? langEl.value : "";
   mbRun("/api/jobs/" + id + "/cover-letter/improve", { feedback: feedback, lang: lang }, {
-    running: "Anschreiben wird überarbeitet (LLM: " + mbModelName() + ") ...",
-    error: "Überarbeitung fehlgeschlagen: ",
+    running: mbT("cover2_running", "Anschreiben wird überarbeitet") + " (LLM: " + mbModelName() + ") ...",
+    error: mbT("cover2_fail", "Überarbeitung fehlgeschlagen: "),
     onDone: function (run) {
       const name = (run.result && run.result.datei || "").split("/").pop();
       if (name) j.cover_letter_name = name;
-      mbRunBar("Anschreiben für " + (j.company || "den Job") + " wurde überarbeitet.", "success");
+      mbRunBar(mbT("cover2_done", "Anschreiben wurde überarbeitet."), "success");
       if (window.mbShowDetail) window.mbShowDetail(id);
     },
   });
@@ -506,8 +506,8 @@ function updateUseLabels() {
     lab.classList.toggle("off", !inp.checked);
     const s = lab.querySelector(".use-label");
     if (!s) return;
-    if (inp.type === "radio") s.textContent = inp.checked ? "aktiv (Anschreiben)" : "nicht aktiv";
-    else s.textContent = inp.checked ? "verwendet" : "nicht verwendet";
+    if (inp.type === "radio") s.textContent = inp.checked ? mbT("use_photo_on", "aktiv (Anschreiben)") : mbT("use_photo_off", "nicht aktiv");
+    else s.textContent = inp.checked ? mbT("use_on", "verwendet") : mbT("use_off", "nicht verwendet");
   });
 }
 
@@ -518,10 +518,10 @@ window.mbUseDoc = function (id, checked, el) {
     body: new URLSearchParams({ use: checked ? 1 : 0 }),
   }).then(function (r) { return r.json(); }).then(function () {
     updateUseLabels();
-    mbRunBar(checked ? "Gespeichert." : "Gespeichert.", "success");
+    mbRunBar(mbT("saved", "Gespeichert."), "success");
     setTimeout(function () { mbRunBar(""); }, 1500);
   }).catch(function () {
-    mbRunBar("Speichern fehlgeschlagen.", "error");
+    mbRunBar(mbT("save_fail", "Speichern fehlgeschlagen."), "error");
     if (el) el.checked = !checked;
     updateUseLabels();
   });
@@ -529,18 +529,18 @@ window.mbUseDoc = function (id, checked, el) {
 
 window.mbDocEval = function (id) {
   mbRun("/api/documents/" + id + "/evaluate", {}, {
-    running: "Dokument wird bewertet (LLM: " + mbModelName() + ") ...",
-    done: "Bewertung fertig.", error: "Bewertung fehlgeschlagen: ",
+    running: mbT("doc_eval_running", "Dokument wird bewertet") + " (LLM: " + mbModelName() + ") ...",
+    done: mbT("doc_eval_done", "Bewertung fertig."), error: mbT("doc_eval_fail", "Bewertung fehlgeschlagen: "),
     onDone: function () { location.reload(); },
   });
 };
 
 window.mbDocImprove = function (id) {
-  const hint = window.prompt("Was soll verbessert oder ergänzt werden? (optional)\nz. B. \"mehr Kenntnisse mit opencode und Claude Code ergänzen\"", "");
+  const hint = window.prompt(mbT("doc_improve_prompt", "Was soll verbessert oder ergänzt werden? (optional)"), "");
   if (hint === null) return;
   mbRun("/api/documents/" + id + "/improve", { instruction: hint }, {
-    running: "Verbesserte Kopie wird erzeugt (LLM: " + mbModelName() + ") ...",
-    done: "Verbesserte Kopie erstellt.", error: "Erstellung fehlgeschlagen: ",
+    running: mbT("doc_improve_running", "Verbesserte Kopie wird erzeugt") + " (LLM: " + mbModelName() + ") ...",
+    done: mbT("doc_improve_done", "Verbesserte Kopie erstellt."), error: mbT("doc_improve_fail", "Erstellung fehlgeschlagen: "),
     onDone: function () { location.reload(); },
   });
 };

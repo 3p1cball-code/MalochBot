@@ -8,6 +8,16 @@ MalochBot ist eine lokale Open-Source-Webanwendung, die **Jobsuche, Bewerbungsve
 und Karriereunterlagen** an einem Ort bündelt. Alle Analysen laufen über
 [opencode](https://opencode.ai) und ein frei wählbares LLM.
 
+## Projektziel – Jobsuche zu Ende gedacht
+
+Jobsuche ist zermürbend: Stellenanzeigen über viele Portale, Bewerbungen per Mail,
+Rückmeldungen im Postfach, Unterlagen in mehreren Ordnern. MalochBot denkt diesen Ablauf
+konsequent zu Ende und bündelt ihn an **einer** Stelle – **lokal auf dem eigenen Rechner**,
+ohne Cloud-Zwang. Suche, Tracking und Unterlagen greifen auf dieselbe Datenbasis zu; jede
+Bewertung läuft über opencode mit einem frei wählbaren LLM. Das Ziel ist nicht, den Menschen
+zu ersetzen, sondern die **Routine zu automatisieren**, damit mehr Zeit für die
+Entscheidungen bleibt, die wirklich zählen: welcher Job, welches Anschreiben, welcher Termin.
+
 ## Funktionen
 
 - **Jobs finden** – per Button eine Suche starten; neue Stellen werden gefunden,
@@ -23,7 +33,9 @@ und Karriereunterlagen** an einem Ort bündelt. Alle Analysen laufen über
 - **Modellwahl** – Dropdown aller in opencode verfügbaren Modelle; Analysen laufen immer
   über opencode.
 - **Live-Log** – jeder Prozessschritt in Echtzeit, fehleranalysetaugliche Logdateien.
-- **Vier Themes** – Hell, Dunkel, Nord, Sepia (Umschalter oben rechts).
+- **Auswertung** – Treffer pro Suchtag, Trichter (gefunden → beworben → Antwort → Interview → Angebot), Fit-Verteilung.
+- **Zwei Themes** – Hell und Dunkel (Umschalter oben rechts), minimalistisch und ruhig.
+- **Hilfe an Bord** – „Über & Spenden" erklärt Projektziel, Bedienung und Sicherheit.
 - **Sicher** – Zugangsdaten im OS-Keyring, kein Secret im Repository, kein Telemetrie.
 
 ## Dokumentation

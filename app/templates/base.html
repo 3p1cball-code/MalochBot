@@ -55,5 +55,21 @@
   </footer>
   <script src="/static/app.js?v={{ build_id }}"></script>
   <script>window.MB_MODEL = {{ model|tojson }};</script>
+  <script>window.MB_T = {
+    running: {{ t('run.running')|tojson }}, done: {{ t('run.done')|tojson }},
+    start_error: {{ t('run.start_error')|tojson }}, network: {{ t('run.network')|tojson }},
+    error: {{ t('run.error')|tojson }},
+    search_running: {{ t('search.running')|tojson }}, search_done: {{ t('search.done')|tojson }}, search_fail: {{ t('search.fail')|tojson }},
+    status_running: {{ t('status.running')|tojson }}, status_done: {{ t('status.done')|tojson }}, status_fail: {{ t('status.fail')|tojson }},
+    cover_running: {{ t('cover.running')|tojson }}, cover_done: {{ t('cover.done')|tojson }}, cover_fail: {{ t('cover.fail')|tojson }},
+    cover2_running: {{ t('cover2.running')|tojson }}, cover2_done: {{ t('cover2.done')|tojson }}, cover2_fail: {{ t('cover2.fail')|tojson }},
+    cover_need_feedback: {{ t('cover.need_feedback')|tojson }},
+    doc_eval_running: {{ t('doc.eval_running')|tojson }}, doc_eval_done: {{ t('doc.eval_done')|tojson }}, doc_eval_fail: {{ t('doc.eval_fail')|tojson }},
+    doc_improve_running: {{ t('doc.improve_running')|tojson }}, doc_improve_done: {{ t('doc.improve_done')|tojson }}, doc_improve_fail: {{ t('doc.improve_fail')|tojson }},
+    doc_improve_prompt: {{ t('docs.improve_prompt')|tojson }},
+    use_on: {{ t('docs.use_on')|tojson }}, use_off: {{ t('docs.use_off')|tojson }},
+    use_photo_on: {{ t('docs.use_photo_on')|tojson }}, use_photo_off: {{ t('docs.use_photo_off')|tojson }},
+    saved: {{ t('common.saved')|tojson }}, save_fail: {{ t('common.save_fail')|tojson }}
+  };</script>
 </body>
 </html>

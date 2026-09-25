@@ -24,7 +24,7 @@
 <h2>{{ doc_labels[kind] }} <span class="muted small">({{ group|length }})</span></h2>
 <div class="table-wrap" style="margin-bottom:18px"><table class="table docs-table">
   <colgroup><col style="width:34%"><col style="width:15%"><col style="width:19%"><col style="width:32%"></colgroup>
-  <tr><th>{{ t('docs.file') }}</th><th>{{ t('docs.kind') }}</th><th>Verwendung</th><th></th></tr>
+  <tr><th>{{ t('docs.file') }}</th><th>{{ t('docs.kind') }}</th><th>{{ t('docs.usage') }}</th><th></th></tr>
   {% for d in group %}
   <tr>
     <td><a href="/documents/{{ d.id }}/download">{{ d.name }}</a><div class="small muted">v{{ d.version }} · {{ (d.size / 1024) | round(1) }} KB · {{ d.created_at[:10] }}</div></td>
@@ -41,20 +41,20 @@
       <label class="use-toggle {{ 'on' if d.id == active_photo else 'off' }}">
         <input type="radio" name="photo" {% if d.id == active_photo %}checked{% endif %}
                onchange="mbUseDoc({{ d.id }}, true, this)">
-        <span class="use-label">{{ 'aktiv (Anschreiben)' if d.id == active_photo else 'nicht aktiv' }}</span>
+        <span class="use-label">{{ t('docs.use_photo_on') if d.id == active_photo else t('docs.use_photo_off') }}</span>
       </label>
       {% else %}
       <label class="use-toggle {{ 'on' if d.id in selected_docs else 'off' }}">
         <input type="checkbox" {% if d.id in selected_docs %}checked{% endif %}
                onchange="mbUseDoc({{ d.id }}, this.checked, this)">
-        <span class="use-label">{{ 'verwendet' if d.id in selected_docs else 'nicht verwendet' }}</span>
+        <span class="use-label">{{ t('docs.use_on') if d.id in selected_docs else t('docs.use_off') }}</span>
       </label>
       {% endif %}
     </td>
     <td class="doc-actions">
       {% set ext = d.name.lower().rsplit('.', 1)[-1] %}
       {% if ext in ['png', 'jpg', 'jpeg', 'webp'] %}
-      <a class="btn btn-sm doc-act" href="/documents/{{ d.id }}/crop">Bearbeiten</a>
+      <a class="btn btn-sm doc-act" href="/documents/{{ d.id }}/crop">{{ t('docs.edit') }}</a>
       {% endif %}
       <button class="btn btn-sm doc-act" type="button" onclick="mbDocEval({{ d.id }})">{{ t('docs.evaluate') }}</button>
       <button class="btn btn-sm doc-act" type="button" onclick="mbDocImprove({{ d.id }})">{{ t('docs.improve') }}</button>

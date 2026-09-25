@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% set page_title = "Einstellungen" %}
+{% set page_title = t('settings.title') %}
 {% block content %}
 <h1>{{ t('settings.title') }}</h1>
 <p class="subtitle">{{ t('settings.subtitle') }}</p>
@@ -33,7 +33,7 @@
       <input type="number" name="fit_threshold" min="0" max="100" value="{{ values.fit_threshold or 0 }}">
       <span class="small muted">Jobs unter dieser Schwelle werden standardmäßig aus der Liste gefiltert. 0 = aus. Gilt auch für die Suche.</span>
     </div>
-    <div class="field"><label>Heimatstadt</label>
+    <div class="field"><label>{{ t('settings.home_city') }}</label>
       <input name="home_city" value="{{ values.home_city or '' }}" placeholder="z. B. Berlin">
       <span class="small muted">Wird als Schnellwahl im Ort-Filter der Jobliste genutzt.</span>
     </div>
@@ -47,8 +47,8 @@
 
   <div class="card stack">
     <h2 style="margin-top:0">{{ t('settings.mail') }}</h2>
-    <p class="small muted">Idealerweise das Postfach, das du bei Bewerbungen angibst. Zugriff erfolgt read-only per IMAP.</p>
-    <div class="field"><label>Anbieter</label>
+    <p class="small muted">{{ t('settings.mail_hint') }}</p>
+    <div class="field"><label>{{ t('settings.provider') }}</label>
       <select name="mail_provider" onchange="mbApplyProvider(this)">
         <option value="">— bitte wählen —</option>
         {% for p in mail_providers %}
@@ -58,16 +58,16 @@
       <span id="mail-note" class="small muted"></span>
     </div>
     <div class="grid cols-2">
-      <div class="field"><label>E-Mail-Adresse</label><input name="mail_email" value="{{ values.mail_email }}" placeholder="name@beispiel.de"></div>
-      <div class="field"><label>Passwort / App-Passwort {% if has_mail_password %}<span class="small muted">(gespeichert – leer lassen zum Beibehalten)</span>{% endif %}</label>
+      <div class="field"><label>{{ t('settings.email') }}</label><input name="mail_email" value="{{ values.mail_email }}" placeholder="name@beispiel.de"></div>
+      <div class="field"><label>{{ t('settings.password') }} {% if has_mail_password %}<span class="small muted">{{ t('settings.password_saved') }}</span>{% endif %}</label>
         <input type="password" name="mail_password" placeholder="••••••••">
       </div>
-      <div class="field"><label>IMAP-Host (bei „anderer Anbieter")</label><input id="mail_host" name="mail_host" value="{{ values.mail_host }}"></div>
-      <div class="field"><label>Port</label><input id="mail_port" name="mail_port" value="{{ values.mail_port }}"></div>
-      <div class="field"><label>Ordner (kommagetrennt)</label><input name="mail_folders" value="{{ values.mail_folders }}"></div>
+      <div class="field"><label>{{ t('settings.imap_host') }}</label><input id="mail_host" name="mail_host" value="{{ values.mail_host }}"></div>
+      <div class="field"><label>{{ t('settings.port') }}</label><input id="mail_port" name="mail_port" value="{{ values.mail_port }}"></div>
+      <div class="field"><label>{{ t('settings.folders') }}</label><input name="mail_folders" value="{{ values.mail_folders }}"></div>
     </div>
-    <p class="small muted">Beim ersten Lauf wird automatisch ein Zeit-Marker gesetzt; gescannt werden danach nur noch neue Mails (inkrementell). Vergangene Mails werden nicht rückwirkend gelesen.</p>
-    <label class="small"><input type="checkbox" name="clear_password" value="1"> gespeichertes Passwort löschen</label>
+    <p class="small muted">{{ t('settings.incremental') }}</p>
+    <label class="small"><input type="checkbox" name="clear_password" value="1"> {{ t('settings.clear_password') }}</label>
   </div>
 
   <div><button class="btn btn-primary btn-lg btn-block" type="submit">{{ t('common.save') }}</button></div>
@@ -83,7 +83,7 @@
       <button class="btn" type="submit">{{ t('settings.import') }}</button>
     </form>
     <form method="post" action="/shutdown">
-      <button class="btn btn-danger" type="submit" onclick="return confirm('MalochBot wirklich beenden?')">{{ t('settings.shutdown') }}</button>
+      <button class="btn btn-danger" type="submit" onclick="return confirm({{ t('settings.shutdown_confirm')|tojson }})">{{ t('settings.shutdown') }}</button>
     </form>
   </div>
   <p class="small muted">Der Import liest die bisherigen MalochBot-Daten (jobs.json / tracking_state.json) aus dem übergeordneten Ordner. Der Server beendet sich außerdem automatisch, wenn eine Zeit lang keine Seite mehr aktiv ist.</p>

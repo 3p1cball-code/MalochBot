@@ -29,7 +29,7 @@
       </div>
     </div>
     <div class="field"><label>{{ t('common.remote') }}</label><select id="f-remote"><option value="">{{ t('common.any') }}</option><option value="1">{{ t('common.remote') }}</option></select></div>
-    <div class="field"><label>Ort</label>
+    <div class="field"><label>{{ t('jobs.location') }}</label>
       <div style="display:flex;gap:6px">
         <input id="f-loc" placeholder="z. B. {{ home_city }}" style="min-width:120px">
         <button class="btn btn-sm" type="button" onclick="mbQuickCity()" title="Heimatstadt">Home</button>
@@ -49,20 +49,20 @@
 </div>
 
 <details class="card tight" style="margin-bottom:14px">
-  <summary style="cursor:pointer;font-weight:600">Job manuell hinzufügen</summary>
+  <summary style="cursor:pointer;font-weight:600">{{ t('jobs.add_manual') }}</summary>
   <form method="post" action="/jobs/add" class="filters" style="margin-top:12px">
-    <div class="field"><label>Firma *</label><input name="company" required></div>
-    <div class="field" style="flex:1;min-width:220px"><label>Position *</label><input name="title" required></div>
-    <div class="field"><label>Ort</label><input name="location"></div>
-    <div class="field"><label>Remote</label><input type="checkbox" name="remote" value="1"></div>
-    <div class="field"><label>Link Stelle</label><input name="url"></div>
-    <div class="field"><label>Link Firma</label><input name="company_url"></div>
-    <div class="field"><label>Fit 0–100</label><input type="number" name="score" min="0" max="100" style="width:90px"></div>
-    <div class="field"><label>Status</label><select name="status">
+    <div class="field"><label>{{ t('jobs.company_req') }}</label><input name="company" required></div>
+    <div class="field" style="flex:1;min-width:220px"><label>{{ t('jobs.position_req') }}</label><input name="title" required></div>
+    <div class="field"><label>{{ t('jobs.location') }}</label><input name="location"></div>
+    <div class="field"><label>{{ t('common.remote') }}</label><input type="checkbox" name="remote" value="1"></div>
+    <div class="field"><label>{{ t('jobs.url') }}</label><input name="url"></div>
+    <div class="field"><label>{{ t('jobs.company_url') }}</label><input name="company_url"></div>
+    <div class="field"><label>{{ t('jobs.fit') }}</label><input type="number" name="score" min="0" max="100" style="width:90px"></div>
+    <div class="field"><label>{{ t('common.status') }}</label><select name="status">
       {% for s in statuses %}<option value="{{ s }}">{{ status_labels[s] }}</option>{% endfor %}</select></div>
-    <div class="field" style="flex:1;min-width:220px"><label>Warum passt es?</label><input name="rationale"></div>
-    <div class="field" style="flex:1;min-width:220px"><label>Beschreibung</label><input name="description"></div>
-    <button class="btn btn-primary" type="submit">Hinzufügen</button>
+    <div class="field" style="flex:1;min-width:220px"><label>{{ t('jobs.why_fits') }}</label><input name="rationale"></div>
+    <div class="field" style="flex:1;min-width:220px"><label>{{ t('jobs.description') }}</label><input name="description"></div>
+    <button class="btn btn-primary" type="submit">{{ t('jobs.add') }}</button>
   </form>
 </details>
 
@@ -108,6 +108,13 @@ window.MB_I18N = {
   published: {{ t('detail.published')|tojson }}, answer: {{ t('detail.answer')|tojson }},
   optional: {{ t('detail.optional')|tojson }}, source: {{ t('detail.source')|tojson }},
   found: {{ t('common.found')|tojson }},
+  manual_set: {{ t('detail.manual')|tojson }}, fit: {{ t('common.fit')|tojson }},
+  source_lbl: {{ t('detail.source')|tojson }}, found_lbl: {{ t('common.found')|tojson }},
+  answer_lbl: {{ t('detail.answer')|tojson }},
+  auto_off: {{ t('detail.auto_off')|tojson }}, auto_on: {{ t('detail.auto_on')|tojson }},
+  coverlang: {{ t('detail.coverlang')|tojson }}, auto: {{ t('detail.auto')|tojson }},
+  dl_cover: {{ t('detail.dl_cover')|tojson }}, regen: {{ t('detail.regen')|tojson }},
+  feedback_ph: {{ t('detail.feedback_ph')|tojson }},
   save: {{ t('common.save')|tojson }}, none: {{ t('jobs.none')|tojson }}
 };
 </script>
