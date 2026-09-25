@@ -234,11 +234,11 @@ code { background: var(--panel-2); border: 1px solid var(--line); padding: 1px 6
 .job-detail p { margin: 0; }
 .job-detail .btn, .job-detail input, .job-detail select { min-height: 38px; }
 .job-detail .btn { display: inline-flex; align-items: center; }
-.job-actions { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 12px; align-items: end; }
+.job-actions { display: grid; grid-template-columns: minmax(0, 1fr) 170px; gap: 12px; align-items: end; }
 .job-actions .field { margin: 0; }
 .job-actions .span-all { grid-column: 1 / -1; }
 .job-actions .col-right { grid-column: 2; }
-.job-actions .action-row { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(150px, 210px) minmax(0, 1fr) 150px; gap: 10px; align-items: end; }
+.job-actions .action-row { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(150px, 190px) minmax(0, 1fr) 170px; gap: 10px; align-items: end; }
 .job-actions .action-row .btn { width: 100%; }
 .job-actions .detail-lang { grid-column: 1 / -1; max-width: 300px; }
 .job-actions .btn-block { width: 100%; }
