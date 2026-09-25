@@ -100,7 +100,7 @@ def extract_json(text: str):
         objects.append(obj)
         index = start + end
     for obj in objects:
-        if isinstance(obj, dict) and "jobs" in obj:
+        if isinstance(obj, dict) and ("jobs" in obj or "mails" in obj):
             return obj
     for obj in objects:
         if isinstance(obj, list) and obj and isinstance(obj[0], dict) and "company" in obj[0]:
