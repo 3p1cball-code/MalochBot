@@ -1,14 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 64" width="300" height="64" role="img" aria-label="MalochBot">
-  <defs>
-    <linearGradient id="mbw" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#4f46e5"/>
-      <stop offset="1" stop-color="#7c3aed"/>
-    </linearGradient>
-  </defs>
-  <rect x="3" y="3" width="58" height="58" rx="14" fill="url(#mbw)"/>
-  <path d="M17 45 V21 L32 36 L47 21 V45" fill="none" stroke="#ffffff"
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 64" width="340" height="64" role="img" aria-label="MalochBot">
+  <rect x="3" y="3" width="58" height="58" fill="#cf9414"/>
+  <path d="M17 45 V21 L32 36 L47 21 V45" fill="none" stroke="#1b1400"
         stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="47" cy="21" r="3.6" fill="#ffffff"/>
-  <text x="78" y="43" font-family="DejaVu Sans, Arial, Helvetica, sans-serif"
-        font-size="30" font-weight="700" fill="#0f172a">MalochBot</text>
+  <circle cx="47" cy="21" r="3.6" fill="#1b1400"/>
+  <text x="78" y="42" font-family="DejaVu Sans, Arial, Helvetica, sans-serif"
+        font-size="24" font-weight="700" letter-spacing="4" fill="#18181b">MALOCHBOT</text>
 </svg>
