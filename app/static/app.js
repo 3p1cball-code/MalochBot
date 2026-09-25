@@ -68,6 +68,30 @@ function mbEsc(s) {
 
   const statusBoxes = Array.prototype.slice.call(document.querySelectorAll(".f-status"));
 
+  const FILTER_KEYS = ["f-q", "f-source", "f-remote", "f-loc", "f-fit", "f-from", "f-to", "f-sort"];
+  function saveFilters() {
+    const st = {};
+    FILTER_KEYS.forEach(function (id) {
+      const el = document.getElementById(id);
+      if (el) st[id] = el.value;
+    });
+    st.status = statusBoxes.filter(function (c) { return c.checked; }).map(function (c) { return c.value; });
+    try { localStorage.setItem("mb-filters", JSON.stringify(st)); } catch (e) {}
+  }
+  function loadFilters() {
+    let st = null;
+    try { st = JSON.parse(localStorage.getItem("mb-filters") || "null"); } catch (e) {}
+    if (!st) return;
+    FILTER_KEYS.forEach(function (id) {
+      const el = document.getElementById(id);
+      if (el && st[id] !== undefined) el.value = st[id];
+    });
+    if (Array.isArray(st.status)) {
+      statusBoxes.forEach(function (c) { c.checked = st.status.indexOf(c.value) >= 0; });
+    }
+  }
+  loadFilters();
+
   function activeJobs() {
     const q = (document.getElementById("f-q").value || "").toLowerCase();
     const checkedStatus = {};
@@ -207,12 +231,13 @@ function mbEsc(s) {
     renderList();
   }
 
+  function onFilterChange() { renderList(); saveFilters(); }
   ["f-q", "f-source", "f-remote", "f-loc", "f-fit", "f-from", "f-to", "f-sort"].forEach(function (id) {
     const el = document.getElementById(id);
-    el.addEventListener("input", renderList);
-    el.addEventListener("change", renderList);
+    el.addEventListener("input", onFilterChange);
+    el.addEventListener("change", onFilterChange);
   });
-  statusBoxes.forEach(function (el) { el.addEventListener("change", renderList); });
+  statusBoxes.forEach(function (el) { el.addEventListener("change", onFilterChange); });
 
   window.mbResetFilters = function () {
     ["f-q", "f-source", "f-remote", "f-loc", "f-from", "f-to"].forEach(function (id) {
@@ -222,6 +247,7 @@ function mbEsc(s) {
     document.getElementById("f-fit").value = window.MB_FIT_THRESHOLD || 0;
     document.getElementById("f-sort").value = "found";
     renderList();
+    saveFilters();
   };
 
   const layout = document.querySelector(".jobs-layout");
@@ -263,6 +289,7 @@ function mbEsc(s) {
   window.mbJobs = jobs;
   window.mbShowDetail = showDetail;
   window.mbRenderList = renderList;
+  window.mbSaveFilters = saveFilters;
 })();
 
 /* ---------- Inline-Laufstatus (statt Log-Fokus) ---------- */
@@ -361,7 +388,7 @@ window.mbImproveCover = function (id) {
 
 window.mbQuickCity = function () {
   const el = document.getElementById("f-loc");
-  if (el) { el.value = window.MB_HOME_CITY || "Berlin"; if (window.mbRenderList) window.mbRenderList(); }
+  if (el) { el.value = window.MB_HOME_CITY || "Berlin"; if (window.mbRenderList) window.mbRenderList(); if (window.mbSaveFilters) window.mbSaveFilters(); }
 };
 
 function updateUseLabels() {
