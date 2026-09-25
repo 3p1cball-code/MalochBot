@@ -74,6 +74,14 @@ def main():
         "since": args.since, "model": model, "mails": len(mails),
         "assoc": len(assoc), "proposals": len(cand), "same": same,
         "changes": changes,
+        "cand": {str(k): v for k, v in cand.items()},
+        "raw": [
+            {"mail_id": it.get("mail_id"), "job_id": it.get("job_id"),
+             "phase": it.get("phase"), "antwort_am": it.get("antwort_am"),
+             "subject": (mails[it["mail_id"]]["subject"][:70] if isinstance(it.get("mail_id"), int)
+                         and 0 <= it["mail_id"] < len(mails) else "")}
+            for it in raw if isinstance(it, dict)
+        ],
         "associations": {str(k): v for k, v in assoc.items()},
     }
     with open(args.out, "w", encoding="utf-8") as fh:
