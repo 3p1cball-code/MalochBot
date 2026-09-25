@@ -41,7 +41,13 @@ pip install -r requirements.txt
 echo "Initialisiere Datenbank ..."
 python -c "from app import db; db.init_db(); print('OK:', db.get_setting('model'))"
 
-chmod +x run.sh 2>/dev/null || true
+echo
+echo "Richte opencode-Websuche ein (Brave-Suche + Fetch) ..."
+if [ -x scripts/setup_opencode_mcp.sh ]; then
+  bash scripts/setup_opencode_mcp.sh || true
+fi
+
+chmod +x run.sh scripts/setup_opencode_mcp.sh 2>/dev/null || true
 
 echo
 echo "Fertig. Starten mit: ./run.sh"

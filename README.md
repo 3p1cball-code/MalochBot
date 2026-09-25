@@ -55,9 +55,28 @@ install.bat
 run.bat
 ```
 
-Die Installer prüfen/installieren **opencode**, legen eine virtuelle Umgebung an und
-initialisieren die Datenbank. Danach im Browser unter **Einstellungen** Modell und
-Mailkonto einrichten (einmalig).
+Die Installer prüfen/installieren **opencode**, richten die **Websuche (MCP)** ein, legen
+eine virtuelle Umgebung an und initialisieren die Datenbank. Danach im Browser unter
+**Einstellungen** Modell und Mailkonto einrichten (einmalig).
+
+## Websuche (MCP) – wichtig für die Jobsuche
+
+Die Jobsuche lässt das Modell im Web recherchieren. Dafür braucht opencode die MCP-Server
+**brave-search** (Websuche) und **fetch**. Ohne sie findet die Suche nichts und bricht mit
+„Keine auswertbare JSON-Antwort" ab.
+
+- `scripts/setup_opencode_mcp.sh` (Linux/macOS) bzw. `scripts/setup_opencode_mcp.bat`
+  (Windows) tragen die MCP-Server in `~/.config/opencode/opencode.json` ein — der Installer
+  ruft das automatisch auf.
+- Benötigt **Node.js 20+** (für `npx`/brave-search) und **uv** (für `uvx`/fetch). Fehlen sie,
+  versucht das Skript eine Installation nach `~/.local/tools` (über micromamba bzw. den
+  uv-Installer); sonst bitte [Node.js](https://nodejs.org) und
+  [uv](https://docs.astral.sh/uv/) nachinstallieren.
+- **Brave-API-Key** (kostenloser Tarif auf https://brave.com/search/api/) wird beim Setup
+  abgefragt und lokal in der opencode-Config (0600) gespeichert. Ohne Key bleibt die
+  Websuche deaktiviert.
+- Läuft MalochBot als **systemd-Dienst**, muss der Dienst-PATH die Binärdateien enthalten,
+  z. B. `Environment=PATH=/home/USER/.opencode/bin:/home/USER/.local/tools/bin:/usr/local/bin:/usr/bin:/bin`.
 
 ## Betrieb
 
@@ -78,7 +97,8 @@ Dienst im Netz erreichbar ist. Ein systemd-Unit liegt unter `deploy/malochbot.se
 
 - Python 3.10+
 - [opencode](https://opencode.ai) (die Installer versuchen es mitzuinstallieren)
-- Optional LibreOffice für PDF-Export von Anschreiben
+- **Node.js 20+** und **uv** für die Websuche-MCPs (brave-search/fetch; siehe oben)
+- Optional LibreOffice für PDF-Export von Anschreiben (nicht nötig – PDFs entstehen in Python)
 
 ## Architektur
 

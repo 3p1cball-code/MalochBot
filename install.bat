@@ -26,6 +26,10 @@ echo Initialisiere Datenbank ...
 python -c "from app import db; db.init_db(); print('OK')"
 
 echo.
+echo Richte opencode-Websuche ein (Brave-Suche + Fetch) ...
+call scripts\setup_opencode_mcp.bat
+
+echo.
 echo Fertig. Starten mit: run.bat
 echo Danach im Browser oeffnen und unter 'Einstellungen' Modell + Mailkonto einrichten.
 pause

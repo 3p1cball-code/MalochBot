@@ -11,6 +11,7 @@ WorkingDirectory=/opt/MalochBot
 Environment=MALOCHBOT_HOST=0.0.0.0
 Environment=MALOCHBOT_PORT=8765
 Environment=TRACKER_MODEL=deepseek/deepseek-flash
+Environment=PATH=%h/.opencode/bin:%h/.local/tools/bin:/usr/local/bin:/usr/bin:/bin
 ExecStart=/opt/MalochBot/.venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8765
 Restart=on-failure
 RestartSec=5
