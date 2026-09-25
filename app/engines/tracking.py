@@ -31,7 +31,9 @@ PROMPT = """Du wertest die Bewerbungs-Mailbox aus.
 Angehaengt ist context.json mit:
 - "jobs": Bewerbungen (id, firma, position).
 - "mails": saemtliche E-Mails aus Ein- und Ausgang (date, direction, from, to,
-  subject, body). "direction" ist "in" (empfangen) oder "out" (von der Person gesendet).
+  subject, body, hint). "direction" ist "in" (empfangen) oder "out" (von der Person
+  gesendet). "hint" ist ggf. ein aus Links/Signatur abgeleiteter Firmen-Hinweis
+  (z. B. bei Bewerbungsportalen) und hilft bei der Zuordnung.
 
 Es sind ALLE Mails enthalten - viele davon betreffen keine Bewerbung (Newsletter,
 Job-Alerts, privates). Ignoriere solche. Ordne eine Mail nur dann einem Job zu, wenn
@@ -115,6 +117,28 @@ def _tokens(jobs) -> set:
 def _is_sent(folder: str) -> bool:
     f = (folder or "").lower()
     return any(k in f for k in ("sent", "gesendet", "versenden", "outbox"))
+
+
+ATS_HOSTS = ("softgarden.io", "personio.de", "personio.com", "greenhouse.io", "recruitee.com",
+             "comeet.com", "ashbyhq.com", "myworkdayjobs.com", "workday.com", "lever.co",
+             "teamtailor.com", "join.com", "onlyfy.com", "breezy.hr", "smartrecruiters.com",
+             "umantis.com", "rexx-systems.com", "haufe.de")
+
+
+def _hint(frm: str, body: str) -> str:
+    """Rauer Firmen-Hinweis aus Links/Absender (fuer Bewerbungsportale)."""
+    text = ((frm or "") + " " + (body or "")).lower()
+    for host in re.findall(r"([a-z0-9-]+(?:\.[a-z0-9-]+){1,3})", text):
+        parts = host.split(".")
+        base = ".".join(parts[-2:])
+        if base in ATS_HOSTS and len(parts) >= 3:
+            sub = parts[-3]
+            if sub not in ("www", "app", "jobs", "job", "career", "careers", "mail", "email", "noreply"):
+                return sub
+        elif base not in ATS_HOSTS and base not in ("gmail.com", "eyedea3d.com", "google.com",
+                                                    "microsoft.com", "outlook.com", "linkedin.com"):
+            return parts[0]
+    return ""
 
 
 def _clean_phase(value) -> str:
@@ -201,9 +225,10 @@ def _scan(client, jobs=None):
             except Exception:
                 iso = ""
             is_out = sent or bool(address and address in frm.lower())
+            body = _body(msg, 1200)
             found.append({"date": iso, "folder": folder, "from": frm, "to": to,
                           "direction": "out" if is_out else "in",
-                          "subject": subj, "body": _body(msg, 1200)})
+                          "subject": subj, "body": body, "hint": _hint(frm, body)})
     found.sort(key=lambda m: m["date"])
     return found
 
@@ -304,7 +329,7 @@ def run_tracking(run_id: int, model: str = "") -> dict:
 
         # Nur mit Beleg anwenden; ohne Mail in diesem Lauf unveraendert lassen.
         # (Inkrementelle Scans sehen nur neue Mails - kein Herabstufen alter Bewerbungen.)
-        if phase == "Ohne Rueckmeldung" or not job_mails.get(jid):
+        if phase == "Ohne Rueckmeldung":
             continue
 
         new_status = config.PHASE_TO_STATUS.get(phase, "beworben")
