@@ -73,7 +73,7 @@ function mbEsc(s) {
 
   const statusBoxes = Array.prototype.slice.call(document.querySelectorAll(".f-status"));
 
-  const FILTER_KEYS = ["f-q", "f-source", "f-remote", "f-loc", "f-fit", "f-from", "f-to", "f-sort"];
+  const FILTER_KEYS = ["f-q", "f-remote", "f-loc", "f-fit", "f-from", "f-to", "f-sort"];
   function saveFilters() {
     const st = {};
     FILTER_KEYS.forEach(function (id) {
@@ -101,7 +101,6 @@ function mbEsc(s) {
     const q = (document.getElementById("f-q").value || "").toLowerCase();
     const checkedStatus = {};
     statusBoxes.forEach(function (c) { if (c.checked) checkedStatus[c.value] = 1; });
-    const source = document.getElementById("f-source").value;
     const remote = document.getElementById("f-remote").value;
     const loc = (document.getElementById("f-loc") ? document.getElementById("f-loc").value : "").toLowerCase();
     const fit = parseInt(document.getElementById("f-fit").value || "0", 10);
@@ -113,7 +112,6 @@ function mbEsc(s) {
       const blob = (j.company + " " + j.title + " " + (j.location || "") + " " + (j.rationale || "")).toLowerCase();
       if (q && blob.indexOf(q) === -1) return false;
       if (!checkedStatus[j.status]) return false;
-      if (source && j.source !== source) return false;
       if (remote === "1" && !j.remote) return false;
       if (loc && (j.location || "").toLowerCase().indexOf(loc) === -1) return false;
       if (fit > 0 && (j.score || 0) < fit) return false;
@@ -237,7 +235,7 @@ function mbEsc(s) {
   }
 
   function onFilterChange() { renderList(); saveFilters(); }
-  ["f-q", "f-source", "f-remote", "f-loc", "f-fit", "f-from", "f-to", "f-sort"].forEach(function (id) {
+  ["f-q", "f-remote", "f-loc", "f-fit", "f-from", "f-to", "f-sort"].forEach(function (id) {
     const el = document.getElementById(id);
     el.addEventListener("input", onFilterChange);
     el.addEventListener("change", onFilterChange);
@@ -245,7 +243,7 @@ function mbEsc(s) {
   statusBoxes.forEach(function (el) { el.addEventListener("change", onFilterChange); });
 
   window.mbResetFilters = function () {
-    ["f-q", "f-source", "f-remote", "f-loc", "f-from", "f-to"].forEach(function (id) {
+    ["f-q", "f-remote", "f-loc", "f-from", "f-to"].forEach(function (id) {
       document.getElementById(id).value = "";
     });
     statusBoxes.forEach(function (c) { c.checked = true; });

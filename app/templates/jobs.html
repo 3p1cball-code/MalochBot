@@ -30,8 +30,6 @@
         {% for s in statuses %}<label class="chk"><input type="checkbox" class="f-status" value="{{ s }}" checked style="accent-color: {{ status_colors[s] }}">{{ status_labels[s] }}</label>{% endfor %}
       </div>
     </div>
-    <div class="field"><label>{{ t('common.source') }}</label><select id="f-source"><option value="">{{ t('common.all') }}</option>
-      {% for s in sources %}<option value="{{ s }}">{{ s }}</option>{% endfor %}</select></div>
     <div class="field"><label>{{ t('common.remote') }}</label><select id="f-remote"><option value="">{{ t('common.any') }}</option><option value="1">{{ t('common.remote') }}</option></select></div>
     <div class="field"><label>Ort</label>
       <div style="display:flex;gap:6px">
