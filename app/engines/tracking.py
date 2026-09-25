@@ -210,6 +210,99 @@ def _store_emails(mails, jobs, run_id):
     return mapping
 
 
+def _apply_merged(merged, run_id):
+    """Wendet die je Job ermittelten Phasen an - mit allen Schutzregeln."""
+    updated = 0
+    for item in merged.values():
+        jid = item.get("id")
+        if not isinstance(jid, int):
+            continue
+        phase = _clean_phase(item.get("phase"))
+        antwort = _clean_date(item.get("antwort_am"))
+        job = db.one("SELECT id, status, manual FROM jobs WHERE id=?", (jid,))
+        if not job:
+            continue
+        app_row = db.one("SELECT phase FROM applications WHERE job_id=?", (jid,))
+        prev_phase = app_row["phase"] if app_row else ""
+
+        # Manuell gesetzter Status wird nie automatisch ueberschrieben.
+        if job.get("manual"):
+            logbus.log(run_id, "info", "Job #%d: Status manuell gesetzt - bleibt unveraendert." % jid)
+            continue
+
+        # Nur mit Beleg anwenden; ohne Mail unveraendert lassen.
+        if phase == "Ohne Rueckmeldung":
+            continue
+
+        new_status = config.PHASE_TO_STATUS.get(phase, "beworben")
+        current = job["status"]
+        if current in ("angebot", "abgelehnt", "ignoriert"):
+            final = current
+        elif new_status == "abgelehnt":
+            final = "abgelehnt"
+        else:
+            rank_current = config.STATUS_RANK.get(current, 0)
+            rank_new = config.STATUS_RANK.get(new_status, 0)
+            final = new_status if rank_new >= rank_current else current
+        db.execute("UPDATE jobs SET status=? WHERE id=?", (final, jid))
+
+        existing = db.one("SELECT id FROM applications WHERE job_id=?", (jid,))
+        if existing:
+            db.execute(
+                "UPDATE applications SET phase=?, response_at=?, notes=?, updated_at=? WHERE job_id=?",
+                (phase, antwort, item.get("status_text", ""), db.now_iso(), jid))
+        else:
+            db.execute(
+                "INSERT INTO applications(job_id, phase, response_at, notes, channel, updated_at) "
+                "VALUES(?,?,?,?,?,?)",
+                (jid, phase, antwort, item.get("status_text", ""), "mail", db.now_iso()))
+        updated += 1
+        if phase != prev_phase:
+            note = item.get("status_text", "")
+            db.execute("INSERT INTO events(job_id, ts, kind, text) VALUES(?,?,?,?)",
+                       (jid, db.now_iso(), "status",
+                        "Status (Mail): " + phase + ((" – " + note) if note else "")))
+        logbus.log(run_id, "info", "Status: Job #%d -> %s (%s)" % (jid, final, phase))
+    return updated
+
+
+def recheck_job(job_id: int, run_id: int, model: str = "") -> dict:
+    """Re-Check aus der DB: bewertet die bereits gespeicherten Mails eines Jobs neu.
+
+    Wird beim Entsperren genutzt, damit eine waehrend der Sperre eingegangene Mail
+    nicht verloren geht (der inkrementelle Scan wuerde sie nie wieder sehen).
+    """
+    job = db.one("SELECT id, company, title FROM jobs WHERE id=?", (job_id,))
+    if not job:
+        raise RuntimeError("Job #%d nicht gefunden." % job_id)
+    rows = db.query("SELECT id, date, from_addr, subject, body FROM emails "
+                    "WHERE job_id=? ORDER BY date", (job_id,))
+    logbus.log(run_id, "info", "Re-Check: %d gespeicherte Mails zu Job #%d." % (len(rows), job_id))
+    if not rows:
+        logbus.log(run_id, "warn", "Keine gespeicherten Mails zu diesem Job - nichts zu tun.")
+        return {"aktualisiert": 0}
+    account = (db.get_setting("mail_email", "") or "").lower()
+    mails = []
+    for i, r in enumerate(rows):
+        frm = r["from_addr"] or ""
+        body = r["body"] or ""
+        mails.append({"id": i, "date": r["date"] or "",
+                      "direction": "out" if account and account in frm.lower() else "in",
+                      "from": frm, "to": "", "subject": r["subject"] or "",
+                      "body": body, "hint": _hint(frm, body)})
+    from . import tracking_mail as tm
+    items = tm.classify(mails, [job], model=model, run_id=run_id)
+    assoc, cand = tm.propose(items, {m["id"]: m["date"] for m in mails})
+    merged = {jid: {"id": jid, "phase": c["phase"], "antwort_am": c["date"],
+                    "status_text": c["status_text"], "mail_ids": []} for jid, c in cand.items()}
+    if not merged:
+        logbus.log(run_id, "warn", "Keine verwertbare Aussage aus den gespeicherten Mails.")
+        return {"aktualisiert": 0}
+    updated = _apply_merged(merged, run_id)
+    logbus.log(run_id, "info", "%d Bewerbungen aktualisiert (Re-Check)." % updated)
+    return {"aktualisiert": updated}
+
+
 def run_tracking(run_id: int, model: str = "") -> dict:
     jobs = db.query("SELECT id, company, title FROM jobs")
     if not jobs:
@@ -253,58 +346,7 @@ def run_tracking(run_id: int, model: str = "") -> dict:
                 linked += 1
     logbus.log(run_id, "info", "%d Mail-Job-Zuordnungen (LLM)." % linked)
 
-    updated = 0
-    for item in merged.values():
-        jid = item.get("id")
-        if not isinstance(jid, int):
-            continue
-        phase = _clean_phase(item.get("phase"))
-        antwort = _clean_date(item.get("antwort_am"))
-        job = db.one("SELECT id, status, manual FROM jobs WHERE id=?", (jid,))
-        if not job:
-            continue
-        app_row = db.one("SELECT phase FROM applications WHERE job_id=?", (jid,))
-        prev_phase = app_row["phase"] if app_row else ""
-
-        # Manuell gesetzter Status wird nie automatisch ueberschrieben.
-        if job.get("manual"):
-            logbus.log(run_id, "info", "Job #%d: Status manuell gesetzt - bleibt unveraendert." % jid)
-            continue
-
-        # Nur mit Beleg anwenden; ohne Mail in diesem Lauf unveraendert lassen.
-        # (Inkrementelle Scans sehen nur neue Mails - kein Herabstufen alter Bewerbungen.)
-        if phase == "Ohne Rueckmeldung":
-            continue
-
-        new_status = config.PHASE_TO_STATUS.get(phase, "beworben")
-        current = job["status"]
-        if current in ("angebot", "abgelehnt", "ignoriert"):
-            final = current
-        elif new_status == "abgelehnt":
-            final = "abgelehnt"
-        else:
-            rank_current = config.STATUS_RANK.get(current, 0)
-            rank_new = config.STATUS_RANK.get(new_status, 0)
-            final = new_status if rank_new >= rank_current else current
-        db.execute("UPDATE jobs SET status=? WHERE id=?", (final, jid))
-
-        existing = db.one("SELECT id FROM applications WHERE job_id=?", (jid,))
-        if existing:
-            db.execute(
-                "UPDATE applications SET phase=?, response_at=?, notes=?, updated_at=? WHERE job_id=?",
-                (phase, antwort, item.get("status_text", ""), db.now_iso(), jid))
-        else:
-            db.execute(
-                "INSERT INTO applications(job_id, phase, response_at, notes, channel, updated_at) "
-                "VALUES(?,?,?,?,?,?)",
-                (jid, phase, antwort, item.get("status_text", ""), "mail", db.now_iso()))
-        updated += 1
-        if phase != prev_phase:
-            note = item.get("status_text", "")
-            db.execute("INSERT INTO events(job_id, ts, kind, text) VALUES(?,?,?,?)",
-                       (jid, db.now_iso(), "status",
-                        "Status (Mail): " + phase + ((" – " + note) if note else "")))
-        logbus.log(run_id, "info", "Status: Job #%d -> %s (%s)" % (jid, final, phase))
+    updated = _apply_merged(merged, run_id)
 
     db.set_setting("last_scan", datetime.now().strftime("%Y-%m-%d"))
     logbus.log(run_id, "info", "%d Bewerbungen aktualisiert." % updated)

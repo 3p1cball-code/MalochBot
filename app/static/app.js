@@ -215,8 +215,7 @@ function mbEsc(s) {
           '<button class="btn btn-primary" type="submit">' + L("save", "Speichern") + "</button>" +
         "</form>" +
         (j.manual
-          ? '<form method="post" action="/jobs/' + j.id + '/unlock" class="col-a">' +
-            '<button class="btn" type="submit">' + L("auto_off", "Automatische Status-Updates wieder aktivieren") + "</button></form>"
+          ? '<button class="btn col-a" type="button" onclick="mbUnlockJob(' + j.id + ')">' + L("auto_off", "Automatische Status-Updates wieder aktivieren") + "</button>"
           : '<button class="btn col-a auto-on" type="button" disabled>' + L("auto_on", "Automatische Updates aktiv") + "</button>") +
         '<div class="field col-b"><label>' + L("coverlang", "Sprache des Anschreibens") + '</label>' +
           '<select id="cover-lang">' +
@@ -491,6 +490,15 @@ window.mbCoverAction = function (id) {
   const feedback = ta ? ta.value.trim() : "";
   if (feedback) mbImproveCover(id);
   else mbMakeCover(id);
+};
+
+window.mbUnlockJob = function (id) {
+  mbRun("/api/jobs/" + id + "/unlock", {}, {
+    running: mbT("recheck_running", "Status wird neu geprüft") + " (LLM: " + mbModelName() + ") ...",
+    done: mbT("recheck_done", "Status neu geprüft."),
+    error: mbT("recheck_fail", "Prüfung fehlgeschlagen: "),
+    onDone: function () { history.replaceState(null, "", "/?job=" + id); location.reload(); },
+  });
 };
 
 window.mbQuickCity = function () {

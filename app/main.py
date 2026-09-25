@@ -158,7 +158,17 @@ def job_unlock(job_id: int):
     db.execute("UPDATE jobs SET manual=0 WHERE id=?", (job_id,))
     db.execute("INSERT INTO events(job_id, ts, kind, text) VALUES(?,?,?,?)",
                (job_id, db.now_iso(), "status", "Automatische Status-Updates wieder aktiviert"))
+    start_background("recheck", lambda r, m: tracking_engine.recheck_job(job_id, r, m))
     return RedirectResponse("/?job=%d" % job_id, status_code=303)
+
+
+@app.post("/api/jobs/{job_id}/unlock")
+def api_job_unlock(job_id: int):
+    db.execute("UPDATE jobs SET manual=0 WHERE id=?", (job_id,))
+    db.execute("INSERT INTO events(job_id, ts, kind, text) VALUES(?,?,?,?)",
+               (job_id, db.now_iso(), "status", "Automatische Status-Updates wieder aktiviert"))
+    rid = start_background("recheck", lambda r, m: tracking_engine.recheck_job(job_id, r, m))
+    return JSONResponse({"run_id": rid})
 
 
 @app.post("/jobs/{job_id}/cover-letter")
