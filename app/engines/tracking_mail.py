@@ -21,8 +21,9 @@ Angehaengt context.json mit:
   "direction" ist "in" (empfangen) oder "out" (von der Person gesendet).
   "hint" ist ggf. ein aus Links/Signatur abgeleiteter Firmen-Hinweis.
 
-Aufgabe: Gehe JEDE Mail einzeln durch und entscheide, ob sie den Status eines
-bekannten Jobs aendert oder belegt. Jobs ohne passende Mail NICHT erwaehnen.
+Aufgabe: Gehe JEDE Mail einzeln und vollstaendig durch und entscheide, ob sie
+einen bekannten Job betrifft und dessen Status belegt oder aendert. Jobs ohne
+passende Mail NICHT erwaehnen.
 
 Gib pro relevanter Mail zurueck:
 - mail_id  (id aus "mails")
@@ -39,14 +40,21 @@ Regeln:
 - Jobboersen-Benachrichtigung (LinkedIn/XING) "Bewerbung wurde gesendet" => "Beworben".
 - Firmenbezug steht oft erst im Body/Signatur (hint nutzen).
 - Newsletter/Job-Alerts/privates => job_id null und phase "keine".
-- Absage (auch "Stelle besetzt"/andere Kandidaten) => "Absage"; "leider" allein ist keine Absage.
+- ABSAGE hat Vorrang und wird am haeufigsten uebersehen: Pruefe bei JEDER Mail,
+  ob sie eine Absage ist. Signale: "leider", "andere Kandidaten", "Stelle besetzt",
+  "nicht weiter", "nicht beruecksichtigen", "entschieden uns fuer", "Thank you for
+  your interest" im Absage-Kontext, "Application Update". Solche Mails IMMER als
+  "Absage" markieren, auch wenn der Ton freundlich ist. "leider" allein ohne
+  Absagebezug ist keine Absage.
+- Betreffen MEHRERE Mails denselben Job, markiere JEDE maessgebliche Mail einzeln
+  (nicht nur die erste). Die Anwendung nimmt spaeter automatisch die neueste.
 
 Antworte AUSSCHLIESSLICH mit JSON:
 {"mails":[{"mail_id":1,"job_id":34,"phase":"Beworben","antwort_am":"2026-09-25","status_text":"...","confidence":"hoch"}]}
 """
 
 
-def classify(mails, jobs, model: str = "", batch: int = 100, run_id=None):
+def classify(mails, jobs, model: str = "", batch: int = 40, run_id=None):
     """Bewertet alle Mails in Batches. Gibt die rohe 'mails'-Liste des Modells zurueck."""
     out_items = []
     batches = [mails[i:i + batch] for i in range(0, len(mails), batch)]
@@ -79,6 +87,8 @@ def classify(mails, jobs, model: str = "", batch: int = 100, run_id=None):
 
 def propose(out_items, mail_date_by_id: dict):
     """Aggregiert: pro Job die neueste maessgebliche Mail + Mail->Job-Zuordnungen."""
+    prio = {"Absage": 3, "Interview-Prozess": 3, "Angebot": 3,
+            "Beworben": 1, "Eingangsbestaetigung": 1, "Warte auf Rueckmeldung": 0}
     assoc = {}
     cand = {}
     for item in out_items:
@@ -95,7 +105,8 @@ def propose(out_items, mail_date_by_id: dict):
             continue
         date = t._clean_date(item.get("antwort_am")) or (mail_date_by_id.get(mid) or "")
         cur = cand.get(jid)
-        if cur is None or date >= cur["date"]:
+        if (cur is None or date > cur["date"]
+                or (date == cur["date"] and prio.get(phase, 0) > prio.get(cur["phase"], 0))):
             cand[jid] = {"phase": phase, "date": date,
                          "status_text": item.get("status_text", ""), "mail_id": mid}
     return assoc, cand

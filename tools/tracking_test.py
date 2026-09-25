@@ -20,7 +20,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--since", default="2026-07-01")
     ap.add_argument("--model", default="")
-    ap.add_argument("--batch", type=int, default=100)
+    ap.add_argument("--batch", type=int, default=40)
     ap.add_argument("--out", default=str(config.DATA_DIR / "tracking_test_report.json"))
     args = ap.parse_args()
 
