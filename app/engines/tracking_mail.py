@@ -66,7 +66,14 @@ def classify(mails, jobs, model: str = "", batch: int = 100, run_id=None):
             else:
                 print("Batch %d: keine auswertbare Antwort." % idx, flush=True)
             continue
-        out_items.extend(data.get("mails", []) or [])
+        items = data.get("mails")
+        if not isinstance(items, list):
+            if run_id:
+                logbus.log(run_id, "warn", "Batch %d: unerwartetes Format." % idx)
+            else:
+                print("Batch %d: unerwartetes Format." % idx, flush=True)
+            continue
+        out_items.extend(x for x in items if isinstance(x, dict))
     return out_items
 
 
