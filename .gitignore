@@ -43,3 +43,7 @@ _arb*.png
 docs/screenshots_raw/
 *-uncut.pdf
 _p*.png
+
+# persoenliche Arbeitsprobe (nur lokal, nicht oeffentlich)
+docs/MalochBot-Arbeitsprobe.pdf
+docs/ARBEITSPROBE.md

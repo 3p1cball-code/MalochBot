@@ -40,7 +40,6 @@ decisions that actually matter: which job, which cover letter, which interview.
 
 ## Documentation
 
-- [Work sample (PDF, German)](docs/MalochBot-Arbeitsprobe.pdf) — the project and how it was approached
 - [Technical documentation (German)](docs/DOKUMENTATION.md)
 
 ## Screenshots
