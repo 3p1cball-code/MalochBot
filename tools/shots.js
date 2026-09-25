@@ -35,6 +35,7 @@ const shots = [
   { name: "11-about-dark", p: "/about", theme: "dunkel", full: true },
   { name: "12-about-light", p: "/about", theme: "hell", full: true },
   { name: "13-log-dark", p: "/log", theme: "dunkel" },
+  { name: "14-jobs-dark-actions", p: "/", theme: "dunkel", detail: true, scrollDetail: true, full: true },
 ];
 
 (async () => {
@@ -69,6 +70,13 @@ const shots = [
       await page.waitForTimeout(400);
     }
     await page.addStyleTag({ content: BLUR });
+    if (s.scrollDetail) {
+      await page.evaluate(() => {
+        const d = document.getElementById("job-detail");
+        if (d) { d.style.position = "static"; d.style.maxHeight = "none"; }
+      });
+      await page.waitForTimeout(300);
+    }
     const out = path.join(OUT, s.name + ".png");
     await page.screenshot({ path: out, fullPage: !!s.full });
     console.log("saved", out);
