@@ -1,25 +1,25 @@
 {% extends "base.html" %}
-{% set page_title = "Bild bearbeiten" %}
+{% set page_title = t('crop.title') %}
 {% block content %}
-<h1>Bild bearbeiten</h1>
-<p class="subtitle">{{ doc.name }} · drehen, Helligkeit/Kontrast, ziehen (verschieben), zoomen. Der Rahmen zeigt den Zuschnitt (7:9 für Bewerbungsfotos).</p>
+<h1>{{ t('crop.title') }}</h1>
+<p class="subtitle">{{ doc.name }} · {{ t('crop.subtitle') }}</p>
 
 <div class="crop-layout">
   <div>
     <div id="frame" class="crop-frame"><canvas id="cimg"></canvas></div>
   </div>
   <div class="crop-side">
-    <div class="field"><label>Drehen <span id="rotval" class="muted">0°</span></label>
+    <div class="field"><label>{{ t('crop.rotate') }} <span id="rotval" class="muted">0°</span></label>
       <input type="range" id="rot" min="-20" max="20" step="0.5" value="0"></div>
-    <div class="field"><label>Helligkeit <span id="brightval" class="muted">100%</span></label>
+    <div class="field"><label>{{ t('crop.brightness') }} <span id="brightval" class="muted">100%</span></label>
       <input type="range" id="bright" min="50" max="150" step="1" value="100"></div>
-    <div class="field"><label>Kontrast <span id="contrastval" class="muted">100%</span></label>
+    <div class="field"><label>{{ t('crop.contrast') }} <span id="contrastval" class="muted">100%</span></label>
       <input type="range" id="contrast" min="50" max="150" step="1" value="100"></div>
-    <div class="field"><label>Zoom <span id="zoomval" class="muted">100%</span></label>
+    <div class="field"><label>{{ t('crop.zoom') }} <span id="zoomval" class="muted">100%</span></label>
       <input type="range" id="zoom" min="100" max="300" step="1" value="100"></div>
     <div style="display:flex;gap:10px;margin-top:8px">
-      <button class="btn btn-primary" type="button" onclick="mbCropSave()">Speichern</button>
-      <a class="btn" href="/documents">Abbrechen</a>
+      <button class="btn btn-primary" type="button" onclick="mbCropSave()">{{ t('common.save') }}</button>
+      <a class="btn" href="/documents">{{ t('common.cancel') }}</a>
     </div>
   </div>
 </div>
