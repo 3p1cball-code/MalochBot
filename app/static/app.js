@@ -274,14 +274,17 @@ function mbEsc(s) {
     if (savedDetail) {
       setDetailPx(savedDetail);
     } else {
-      // Default: Grenze auf Hoehe des Remote-Feldes, aber nie schmaler als die Spalten.
-      let listW = colSum() + 2;
+      // Default: Grenze auf Hoehe des Remote-Feldes (mind. Spaltensumme);
+      // wenn Remote umbricht, stattdessen 42 % der Breite.
+      let detailW = Math.round(rect.width * 0.42);
       const remote = document.getElementById("f-remote");
       if (remote) {
         const rx = remote.getBoundingClientRect().left - rect.left;
-        if (rx > 200) listW = Math.max(listW, rx);
+        if (rx > 200) {
+          detailW = rect.width - Math.max(colSum() + 2, rx) - 12;
+        }
       }
-      setDetailPx(rect.width - listW - 12);
+      setDetailPx(detailW);
     }
 
     let dragging = false;
