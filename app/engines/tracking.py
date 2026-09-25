@@ -189,8 +189,8 @@ def _list_folders(client):
     return names
 
 
-def _scan(client, jobs=None):
-    since_iso = db.get_setting("last_scan", "") or date.today().isoformat()
+def _scan(client, jobs=None, since_iso=None):
+    since_iso = since_iso or db.get_setting("last_scan", "") or date.today().isoformat()
     since = datetime.strptime(since_iso, "%Y-%m-%d").strftime("%d-%b-%Y")
     configured = db.get_setting("mail_folders", "INBOX")
     address = (db.get_setting("mail_email", "") or "").lower()
