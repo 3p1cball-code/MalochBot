@@ -214,23 +214,21 @@ function mbEsc(s) {
           '<div class="field"><label>' + L("notec", "Notiz") + '</label><input name="note" placeholder="' + L("optional", "optional") + '"></div>' +
           '<button class="btn btn-primary" type="submit">' + L("save", "Speichern") + "</button>" +
         "</form>" +
-        (j.manual ? '<form method="post" action="/jobs/' + j.id + '/unlock" class="inline-form">' +
-          '<button class="btn" type="submit">Automatische Status-Updates wieder aktivieren</button></form>' : "") +
+        (j.manual ? '<form method="post" action="/jobs/' + j.id + '/unlock" class="span-all">' +
+          '<button class="btn btn-block" type="submit">Automatische Status-Updates wieder aktivieren</button></form>' : "") +
         '<div class="field detail-lang"><label>Sprache des Anschreibens</label>' +
           '<select id="cover-lang">' +
             '<option value="">Automatisch' + (j.language ? " (" + mbEsc(j.language) + ")" : "") + "</option>" +
             '<option value="de">Deutsch</option><option value="en">English</option>' +
           "</select></div>" +
         (j.cover_letter_name
-          ? '<div class="btn-row">' +
-              '<a class="btn btn-primary" href="/generated/' + mbEsc(j.cover_letter_name) + '" download>Anschreiben herunterladen (PDF)</a>' +
-              '<button class="btn" type="button" onclick="mbMakeCover(' + j.id + ')">Neu erzeugen</button>' +
-            "</div>"
-          : '<div class="btn-row"><button class="btn btn-primary" type="button" onclick="mbMakeCover(' + j.id + ')">' + L("cover", "Anschreiben erzeugen") + "</button></div>") +
+          ? '<a class="btn btn-primary span-all" href="/generated/' + mbEsc(j.cover_letter_name) + '" download>Anschreiben herunterladen (PDF)</a>' +
+            '<button class="btn col-right" type="button" onclick="mbMakeCover(' + j.id + ')">Neu erzeugen</button>'
+          : '<button class="btn btn-primary span-all" type="button" onclick="mbMakeCover(' + j.id + ')">' + L("cover", "Anschreiben erzeugen") + "</button>") +
         (j.cover_letter_name
-          ? '<div class="field"><label class="small">Anschreiben verbessern – was soll geändert werden?</label>' +
+          ? '<div class="field span-all"><label class="small">Anschreiben verbessern – was soll geändert werden?</label>' +
             '<textarea id="cover-feedback" rows="2" placeholder="z. B. kürzer, konkreter auf die Rolle eingehen"></textarea></div>' +
-            '<div class="btn-row"><button class="btn" type="button" onclick="mbImproveCover(' + j.id + ')">Feedback einbauen</button></div>'
+            '<button class="btn col-right" type="button" onclick="mbImproveCover(' + j.id + ')">Feedback einbauen</button>'
           : "") +
       "</div>";
     renderList();
