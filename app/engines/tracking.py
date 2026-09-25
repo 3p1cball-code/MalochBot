@@ -273,30 +273,43 @@ def run_tracking(run_id: int, model: str = "") -> dict:
     mail_rows = _store_emails(mails, jobs, run_id)
 
     import json
-    BATCH = 100
-    batches = [mails[i:i + BATCH] for i in range(0, len(mails), BATCH)]
+    mode = db.get_setting("tracking_mode", "job") or "job"
     merged = {}
     job_mails = {}
-    for idx, batch in enumerate(batches, 1):
-        context_path = config.DATA_DIR / ("context_%d.json" % idx)
-        context_path.write_text(
-            json.dumps({"jobs": jobs, "mails": batch}, ensure_ascii=False), encoding="utf-8")
-        logbus.log(run_id, "info", "Bewerte Mails %d/%d (%d Mails) ..." % (idx, len(batches), len(batch)))
-        rc, out = oc.run(PROMPT, model=model, run_id=run_id, attach=[str(context_path)])
-        data = oc.extract_json(out)
-        if not data:
-            logbus.log(run_id, "warn", "Batch %d: keine auswertbare Antwort." % idx)
-            continue
-        for item in data.get("jobs", []):
-            jid = item.get("id")
-            if not isinstance(jid, int):
+    if mode == "mail":
+        from . import tracking_mail as tm
+        logbus.log(run_id, "info", "Auswertung: mail-zentrisch.")
+        items = tm.classify(mails, jobs, model=model, run_id=run_id)
+        mail_date = {m["id"]: m.get("date", "") for m in mails}
+        assoc, cand = tm.propose(items, mail_date)
+        for jid, c in cand.items():
+            merged[jid] = {"id": jid, "phase": c["phase"], "antwort_am": c["date"],
+                           "status_text": c["status_text"], "mail_ids": []}
+        for mid, jid in assoc.items():
+            job_mails.setdefault(jid, set()).add(mid)
+    else:
+        BATCH = 100
+        batches = [mails[i:i + BATCH] for i in range(0, len(mails), BATCH)]
+        for idx, batch in enumerate(batches, 1):
+            context_path = config.DATA_DIR / ("context_%d.json" % idx)
+            context_path.write_text(
+                json.dumps({"jobs": jobs, "mails": batch}, ensure_ascii=False), encoding="utf-8")
+            logbus.log(run_id, "info", "Bewerte Mails %d/%d (%d Mails) ..." % (idx, len(batches), len(batch)))
+            rc, out = oc.run(PROMPT, model=model, run_id=run_id, attach=[str(context_path)])
+            data = oc.extract_json(out)
+            if not data:
+                logbus.log(run_id, "warn", "Batch %d: keine auswertbare Antwort." % idx)
                 continue
-            for mid in item.get("mail_ids", []) or []:
-                if isinstance(mid, int):
-                    job_mails.setdefault(jid, set()).add(mid)
-            cur = merged.get(jid)
-            if cur is None or (item.get("antwort_am") or "") >= (cur.get("antwort_am") or ""):
-                merged[jid] = item
+            for item in data.get("jobs", []):
+                jid = item.get("id")
+                if not isinstance(jid, int):
+                    continue
+                for mid in item.get("mail_ids", []) or []:
+                    if isinstance(mid, int):
+                        job_mails.setdefault(jid, set()).add(mid)
+                cur = merged.get(jid)
+                if cur is None or (item.get("antwort_am") or "") >= (cur.get("antwort_am") or ""):
+                    merged[jid] = item
     if not merged:
         raise RuntimeError("Keine auswertbare JSON-Antwort vom Modell erhalten.")
 

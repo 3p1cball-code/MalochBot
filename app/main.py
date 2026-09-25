@@ -453,8 +453,8 @@ def settings(request: Request, saved: str = ""):
 async def settings_save(request: Request):
     form = await request.form()
     for key in ("model", "profile", "preferences", "search_extra", "fit_threshold",
-                "home_city", "mail_provider", "mail_email", "mail_host", "mail_port",
-                "mail_folders", "mail_since"):
+                "home_city", "tracking_mode", "mail_provider", "mail_email", "mail_host",
+                "mail_port", "mail_folders", "mail_since"):
         if key in form:
             db.set_setting(key, str(form.get(key, "")))
     password = form.get("mail_password", "")
