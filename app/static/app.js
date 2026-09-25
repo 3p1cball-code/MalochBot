@@ -643,7 +643,8 @@ function mbFunnel(container, items) {
   mbDonut(document.getElementById("chart-status"), statusItems, LBL.total || "Jobs");
 
   const fmap = { found: LBL.found || "Gefunden", applied: LBL.applied || "Beworben", response: LBL.responses || "Antwort", interview: LBL.interviews || "Interview", offer: LBL.offers || "Angebot" };
-  const fcol = { found: muted, applied: "#6366f1", response: accent, interview: teal, offer: "#eab308" };
+  const ok = mbCssVar("--ok", "#15803d");
+  const fcol = { found: muted, applied: "#6366f1", response: accent, interview: teal, offer: ok };
   mbFunnel(document.getElementById("chart-funnel"), (s.funnel || []).map(function (f) {
     return { label: fmap[f.key] || f.key, n: f.n, color: fcol[f.key] || accent };
   }));
