@@ -29,7 +29,7 @@ mühsame Routine der Jobsuche ab.
 - Anschreiben-Erzeugung auf Basis von Profil, Lebenslauf und Referenzanschreiben.
 - Anschreiben-Verbesserung per Freitext-Feedback.
 - Statistiken mit Diagrammen zu Status, Phasen, Fit, Herkunft und Monatsverlauf.
-- Live-Log, Fehlerprotokolle, vier Designs (Hell/Dunkel/Nord/Sepia), Deutsch/Englisch.
+- Live-Log, Fehlerprotokolle, zwei Designs (Hell/Dunkel), Deutsch/Englisch.
 
 ## 3. Architektur
 

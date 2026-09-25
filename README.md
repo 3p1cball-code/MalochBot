@@ -45,11 +45,24 @@ Entscheidungen bleibt, die wirklich zählen: welcher Job, welches Anschreiben, w
 
 ## Screenshots
 
-![Jobliste mit Filterleiste und Detailfenster](docs/screenshots/jobs.png)
+> Firmennamen in den Screenshots sind unkenntlich gemacht (siehe `tools/shots.js`).
 
-![Auswertung über alle Jobs und Bewerbungen](docs/screenshots/stats.png)
+**Jobliste mit Detailfenster (dunkel)**
+![Jobliste](docs/screenshots/02-jobs-dark-detail.png)
 
-![Zentrale Unterlagen mit Bewertung und Versionen](docs/screenshots/documents.png)
+**Gefilterte Jobliste (dunkel)**
+![Gefilterte Liste](docs/screenshots/03-jobs-dark-filter-remote.png)
+
+**Auswertung (dunkel)**
+![Statistiken](docs/screenshots/06-stats-dark.png)
+
+**Unterlagen (dunkel)**
+![Unterlagen](docs/screenshots/08-documents-dark.png)
+
+**Hilfe & Projektziel (hell)**
+![Über & Hilfe](docs/screenshots/12-about-light.png)
+
+Weitere Ansichten (hell/dunkel, gefiltert) liegen in [`docs/screenshots/`](docs/screenshots/).
 
 ## Installation
 
