@@ -7,7 +7,7 @@
 {% if run %}
 <div class="card" style="margin-bottom:18px">
   <div class="filters" style="margin-bottom:8px">
-    <span class="badge" style="background:#334155">#{{ run.id }}</span>
+    <span class="badge" style="--bc:#64748b">#{{ run.id }}</span>
     <span class="pill">{{ run.kind }}</span>
     <span class="pill">{{ run.model }}</span>
     <span class="small muted">{{ run.status }}: <span class="status-dot" id="log-dot" style="background:{{ '#eab308' if running else '#22c55e' }}"></span><span id="log-status">{{ "läuft" if running else run.status }}</span></span>
