@@ -227,6 +227,9 @@ def _apply_merged(merged, run_id):
 
         # Manuell gesetzter Status wird nie automatisch ueberschrieben.
         if job.get("manual"):
+            # Faellt hier ein echter Aenderungsvorschlag an, markieren wir das rot.
+            if phase != "Ohne Rueckmeldung" and phase != prev_phase:
+                db.execute("UPDATE jobs SET hl='locked' WHERE id=?", (jid,))
             logbus.log(run_id, "info", "Job #%d: Status manuell gesetzt - bleibt unveraendert." % jid)
             continue
 
@@ -258,6 +261,7 @@ def _apply_merged(merged, run_id):
                 (jid, phase, antwort, item.get("status_text", ""), "mail", db.now_iso()))
         updated += 1
         if phase != prev_phase:
+            db.execute("UPDATE jobs SET hl='changed' WHERE id=?", (jid,))
             note = item.get("status_text", "")
             db.execute("INSERT INTO events(job_id, ts, kind, text) VALUES(?,?,?,?)",
                        (jid, db.now_iso(), "status",
@@ -298,6 +302,7 @@ def recheck_job(job_id: int, run_id: int, model: str = "") -> dict:
     if not merged:
         logbus.log(run_id, "warn", "Keine verwertbare Aussage aus den gespeicherten Mails.")
         return {"aktualisiert": 0}
+    db.execute("UPDATE jobs SET hl='' WHERE id=?", (job_id,))
     updated = _apply_merged(merged, run_id)
     logbus.log(run_id, "info", "%d Bewerbungen aktualisiert (Re-Check)." % updated)
     return {"aktualisiert": updated}
@@ -346,6 +351,7 @@ def run_tracking(run_id: int, model: str = "") -> dict:
                 linked += 1
     logbus.log(run_id, "info", "%d Mail-Job-Zuordnungen (LLM)." % linked)
 
+    db.execute("UPDATE jobs SET hl=''")
     updated = _apply_merged(merged, run_id)
 
     db.set_setting("last_scan", datetime.now().strftime("%Y-%m-%d"))

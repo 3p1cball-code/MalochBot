@@ -273,6 +273,10 @@ table.jobs-table tbody tr { cursor: pointer; }
 table.jobs-table tbody tr:hover td { background: var(--panel-2); }
 table.jobs-table tbody tr.active td { background: var(--accent-soft); }
 table.jobs-table tbody tr.active td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+table.jobs-table tbody tr.hl-changed td { background: color-mix(in srgb, var(--ok) 12%, transparent); }
+table.jobs-table tbody tr.hl-locked td { background: color-mix(in srgb, var(--err) 13%, transparent); }
+.tag.hl-ok { border-color: color-mix(in srgb, var(--ok) 45%, transparent); color: var(--ok); }
+.tag.hl-warn { border-color: color-mix(in srgb, var(--err) 45%, transparent); color: var(--err); }
 table.jobs-table td.co { font-weight: 700; }
 table.jobs-table td.ti { color: var(--ink); }
 table.jobs-table td.ort { color: var(--muted); }

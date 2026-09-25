@@ -136,7 +136,7 @@ function mbEsc(s) {
     tbody.innerHTML = items.map(function (j) {
       const badge = '<span class="badge badge-status" style="--bc:' + (colors[j.status] || "#94a3b8") + '">' +
         (labels[j.status] || j.status) + "</span>";
-      return '<tr class="' + (j.id === currentId ? "active" : "") + '" data-id="' + j.id + '">' +
+      return '<tr class="' + (j.id === currentId ? "active " : "") + (j.hl ? "hl-" + j.hl : "") + '" data-id="' + j.id + '">' +
         '<td class="co">' + mbEsc(j.company) + "</td>" +
         '<td class="ti">' + mbEsc(j.title) + "</td>" +
         '<td class="ort">' + (j.location ? mbEsc(j.location) : "–") +
@@ -194,6 +194,8 @@ function mbEsc(s) {
       '<p class="subtitle" style="margin-top:2px"><strong>' + mbEsc(j.company) + "</strong>" +
         (j.location ? " · " + mbEsc(j.location) : "") + (j.remote ? ' · <span class="remote">remote</span>' : "") + "</p>" +
       '<div class="filters" style="margin-bottom:12px">' + badge +
+        (j.hl === "changed" ? '<span class="tag hl-ok">' + L("hl_changed", "aktualisiert") + "</span>" : "") +
+        (j.hl === "locked" ? '<span class="tag hl-warn">' + L("hl_locked", "manuell gesperrt – Änderung offen") + "</span>" : "") +
         (j.manual ? '<span class="tag" style="border-color:#f59e0b;color:#b45309">' + L("manual_set", "manuell gesetzt") + "</span>" : "") +
         (j.score ? '<span class="pill">' + L("fit", "Fit") + " " + j.score + (j.fit ? " · " + mbEsc(j.fit) : "") + "</span>" : "") +
         '<span class="tag">' + L("source_lbl", "Quelle") + ": " + mbEsc(j.source) + "</span>" +

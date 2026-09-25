@@ -153,6 +153,8 @@ def init_db() -> None:
             conn.execute("ALTER TABLE jobs ADD COLUMN language TEXT DEFAULT ''")
         if "manual" not in columns:
             conn.execute("ALTER TABLE jobs ADD COLUMN manual INTEGER DEFAULT 0")
+        if "hl" not in columns:
+            conn.execute("ALTER TABLE jobs ADD COLUMN hl TEXT DEFAULT ''")
         conn.execute("UPDATE jobs SET status='gefunden' WHERE status='neu'")
         conn.execute("UPDATE jobs SET status='beworben' WHERE status='bestaetigt'")
         # Dokumentpfade portabel machen (nach Migration auf anderen Rechner/Ordner)
