@@ -37,13 +37,6 @@
       <input name="home_city" value="{{ values.home_city or '' }}" placeholder="z. B. Berlin">
       <span class="small muted">Wird als Schnellwahl im Ort-Filter der Jobliste genutzt.</span>
     </div>
-    <div class="field"><label>Tracking-Auswertung</label>
-      <select name="tracking_mode">
-        <option value="job" {% if (values.tracking_mode or 'job') == 'job' %}selected{% endif %}>Job-zentrisch (bewährt)</option>
-        <option value="mail" {% if values.tracking_mode == 'mail' %}selected{% endif %}>Mail-zentrisch (Beta)</option>
-      </select>
-      <span class="small muted">Job-zentrisch = das Modell ordnet jedem Job einen Status zu. Mail-zentrisch = jede Mail wird einzeln bewertet (Beta, in Testphase stabil).</span>
-    </div>
     <div class="field"><label>{{ t('settings.profile') }}</label>
       <textarea name="profile" rows="5">{{ values.profile }}</textarea>
     </div>

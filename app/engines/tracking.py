@@ -11,7 +11,6 @@ from email.header import decode_header, make_header
 from email.utils import parsedate_to_datetime
 
 from .. import config, db, logbus, providers, secrets
-from .. import opencode_adapter as oc
 
 ATS_DOMAINS = (
     "recruitee", "ashbyhq", "greenhouse", "personio", "softgarden", "teamtailor",
@@ -25,48 +24,6 @@ STOP = {
     "organics", "studios", "studio", "grip", "you", "about", "island", "mov",
     "frames", "solutions", "tech", "labs", "alexander",
 }
-
-PROMPT = """Du wertest die Bewerbungs-Mailbox aus.
-
-Angehaengt ist context.json mit:
-- "jobs": Bewerbungen (id, firma, position).
-- "mails": saemtliche E-Mails aus Ein- und Ausgang (date, direction, from, to,
-  subject, body, hint). "direction" ist "in" (empfangen) oder "out" (von der Person
-  gesendet). "hint" ist ggf. ein aus Links/Signatur abgeleiteter Firmen-Hinweis
-  (z. B. bei Bewerbungsportalen) und hilft bei der Zuordnung.
-
-Es sind ALLE Mails enthalten - viele davon betreffen keine Bewerbung (Newsletter,
-Job-Alerts, privates). Ignoriere solche. Ordne eine Mail nur dann einem Job zu, wenn
-Firma/Absender/Empfaenger/Kontext eindeutig passen. Der Firmenbezug steht oft erst im
-Fliesstext oder in der Signatur (z. B. bei Bewerbungsportalen wie Softgarden, Personio,
-Greenhouse) - lies den Body mit.
-
-Ordne JEDEM Job einen Status zu, ausschliesslich anhand der Mails.
-
-Erlaubte Phasen (exakt so):
-- "Interview-Prozess": Einladung/Interview/aktiver Austausch, kein abschliessendes Nein.
-- "Absage": eindeutige Absage (auch Stelle besetzt, andere Kandidaten).
-- "Beworben": eine abgeschickte Bewerbung ist belegt (z. B. gesendete Mail an das
-  Unternehmen/Portal), aber noch keine Rueckmeldung.
-- "Eingangsbestaetigung": nur automatische/neutrale Eingangsbestaetigung.
-- "Warte auf Rueckmeldung": menschliche Antwort, aber noch keine Entscheidung.
-- "Ohne Rueckmeldung": keine passende Mail gefunden.
-
-Hinweis: Jede Mail hat "direction". "out" = von der Person gesendet, "in" = empfangen.
-Eine gesendete Bewerbung (direction "out") an ein Unternehmen belegt, dass beworben wurde.
-Regeln:
-- Neueste maßgebliche Mail entscheidet. Bestaetigung + spaetere Absage => "Absage".
-- Absagen von Termin-/Eingangsmails unterscheiden; "leider" allein ist keine Absage.
-- Auch eine Benachrichtigung von Jobboersen (LinkedIn/XING), dass eine Bewerbung
-  verschickt/gesendet wurde, belegt eine Bewerbung => Phase "Beworben".
-- Nur zuordnen, wenn Firma/Absender/Empfaenger/Kontext eindeutig passen.
-
-Antworte AUSSCHLIESSLICH mit JSON:
-{"jobs":[{"id":1,"phase":"...","bestaetigung":"ja","antwort_am":"YYYY-MM-DD","absender":"...","betreff":"...","status_text":"...","confidence":"hoch","mail_ids":[1,4]}]}
-
-"mail_ids" = die ids (aus "mails") der Nachrichten, die diesen Job belegen. Newsletter,
-Job-Alerts und Aehnliches gehoeren NICHT dazu.
-"""
 
 
 def _norm(text: str) -> str:
@@ -272,44 +229,18 @@ def run_tracking(run_id: int, model: str = "") -> dict:
         m["id"] = i
     mail_rows = _store_emails(mails, jobs, run_id)
 
-    import json
-    mode = db.get_setting("tracking_mode", "job") or "job"
+    from . import tracking_mail as tm
+    logbus.log(run_id, "info", "Auswertung: mail-zentrisch.")
+    items = tm.classify(mails, jobs, model=model, run_id=run_id)
+    mail_date = {m["id"]: m.get("date", "") for m in mails}
+    assoc, cand = tm.propose(items, mail_date)
     merged = {}
     job_mails = {}
-    if mode == "mail":
-        from . import tracking_mail as tm
-        logbus.log(run_id, "info", "Auswertung: mail-zentrisch.")
-        items = tm.classify(mails, jobs, model=model, run_id=run_id)
-        mail_date = {m["id"]: m.get("date", "") for m in mails}
-        assoc, cand = tm.propose(items, mail_date)
-        for jid, c in cand.items():
-            merged[jid] = {"id": jid, "phase": c["phase"], "antwort_am": c["date"],
-                           "status_text": c["status_text"], "mail_ids": []}
-        for mid, jid in assoc.items():
-            job_mails.setdefault(jid, set()).add(mid)
-    else:
-        BATCH = 100
-        batches = [mails[i:i + BATCH] for i in range(0, len(mails), BATCH)]
-        for idx, batch in enumerate(batches, 1):
-            context_path = config.DATA_DIR / ("context_%d.json" % idx)
-            context_path.write_text(
-                json.dumps({"jobs": jobs, "mails": batch}, ensure_ascii=False), encoding="utf-8")
-            logbus.log(run_id, "info", "Bewerte Mails %d/%d (%d Mails) ..." % (idx, len(batches), len(batch)))
-            rc, out = oc.run(PROMPT, model=model, run_id=run_id, attach=[str(context_path)])
-            data = oc.extract_json(out)
-            if not data:
-                logbus.log(run_id, "warn", "Batch %d: keine auswertbare Antwort." % idx)
-                continue
-            for item in data.get("jobs", []):
-                jid = item.get("id")
-                if not isinstance(jid, int):
-                    continue
-                for mid in item.get("mail_ids", []) or []:
-                    if isinstance(mid, int):
-                        job_mails.setdefault(jid, set()).add(mid)
-                cur = merged.get(jid)
-                if cur is None or (item.get("antwort_am") or "") >= (cur.get("antwort_am") or ""):
-                    merged[jid] = item
+    for jid, c in cand.items():
+        merged[jid] = {"id": jid, "phase": c["phase"], "antwort_am": c["date"],
+                       "status_text": c["status_text"], "mail_ids": []}
+    for mid, jid in assoc.items():
+        job_mails.setdefault(jid, set()).add(mid)
     if not merged:
         raise RuntimeError("Keine auswertbare JSON-Antwort vom Modell erhalten.")
 
