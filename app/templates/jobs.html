@@ -6,12 +6,10 @@
     <h1>{{ t('jobs.title') }} <span id="job-count" class="muted small"></span></h1>
     <p class="subtitle" style="margin-bottom:0">{{ t('jobs.subtitle') }}</p>
   </div>
-  <div style="display:flex;gap:10px;flex-wrap:wrap">
-    <div style="display:flex;gap:8px">
-      <input id="search-extra" placeholder="{{ t('jobs.extra_ph') }}" style="min-width:200px">
-      <button class="btn btn-primary" type="button" onclick="mbJobSearch()">{{ t('jobs.search_new') }}</button>
-    </div>
-    <button class="btn" type="button" onclick="mbStatusUpdate()">{{ t('jobs.update') }}</button>
+  <div class="head-actions">
+    <input id="search-extra" placeholder="{{ t('jobs.extra_ph') }}">
+    <button id="btn-search" class="btn btn-primary" type="button" onclick="mbJobSearch()">{{ t('jobs.search_new') }}</button>
+    <button id="btn-update" class="btn btn-primary" type="button" onclick="mbStatusUpdate()">{{ t('jobs.update') }}</button>
   </div>
 </div>
 
@@ -74,7 +72,7 @@
       <table class="jobs-table">
         <colgroup>
           <col style="width:150px"><col style="width:220px"><col class="ort" style="width:130px">
-          <col style="width:52px"><col style="width:140px"><col style="width:96px">
+          <col style="width:52px"><col style="width:140px"><col>
         </colgroup>
         <thead>
           <tr>

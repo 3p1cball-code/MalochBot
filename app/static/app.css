@@ -260,10 +260,15 @@ table.jobs-table td.ti { color: var(--ink); }
 table.jobs-table td.ort { color: var(--muted); }
 table.jobs-table td.fit { font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; }
 table.jobs-table td.date { color: var(--muted); font-size: 12.5px; }
-table.jobs-table th .col-resize { position: absolute; top: 0; bottom: 0; right: 0; width: 8px; cursor: col-resize; z-index: 2; }
-table.jobs-table th .col-resize:hover, table.jobs-table th.resizing .col-resize { background: color-mix(in srgb, var(--accent) 55%, transparent); }
+table.jobs-table th .col-resize { position: absolute; top: 0; bottom: 0; right: -3px; width: 7px; cursor: col-resize; z-index: 2; }
+table.jobs-table th .col-resize::before { content: ""; position: absolute; left: 3px; top: 5px; bottom: 5px; width: 1px; background: var(--line-strong); }
+table.jobs-table th .col-resize:hover::before, table.jobs-table th.resizing .col-resize::before { background: var(--accent); width: 2px; left: 2.5px; }
 table.jobs-table th.resizing { background: var(--accent-soft); }
 @media (max-width: 720px) { .jobs-scroll { max-height: none; } }
+
+/* Kopfaktionsleiste (Suche + Buttons) */
+.head-actions { display: flex; gap: 10px; align-items: center; flex-wrap: nowrap; }
+#search-extra { width: 260px; }
 
 /* Dokumenten-Bewertung */
 .eval-box { background: var(--panel-2); border: 1px solid var(--line); border-radius: 0; padding: 12px 14px; }

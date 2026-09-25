@@ -256,10 +256,12 @@ function mbEsc(s) {
   const layout = document.querySelector(".jobs-layout");
   const splitter = document.getElementById("splitter");
   const colEls = Array.prototype.slice.call(document.querySelectorAll(".jobs-layout colgroup col"));
+  const fixedCols = colEls.slice(0, Math.max(0, colEls.length - 1)); // letzte Spalte gleicht aus
   const COL_KEY = "mb-col-w";
+  const COL_FRACS = [0.14, 0.26, 0.17, 0.05, 0.17];
 
-  function colSum() {
-    return colEls.reduce(function (a, c) { return a + (parseInt(c.style.width, 10) || 0); }, 0);
+  function fixedSum() {
+    return fixedCols.reduce(function (a, c) { return a + (parseInt(c.style.width, 10) || 0); }, 0);
   }
   function setDetailPx(px) {
     if (!layout) return;
@@ -274,15 +276,12 @@ function mbEsc(s) {
     if (savedDetail) {
       setDetailPx(savedDetail);
     } else {
-      // Default: Grenze auf Hoehe des Remote-Feldes (mind. Spaltensumme);
-      // wenn Remote umbricht, stattdessen 42 % der Breite.
+      // Default: Grenze auf Hoehe des Remote-Feldes; wenn Remote umbricht, 42 %.
       let detailW = Math.round(rect.width * 0.42);
       const remote = document.getElementById("f-remote");
       if (remote) {
         const rx = remote.getBoundingClientRect().left - rect.left;
-        if (rx > 200) {
-          detailW = rect.width - Math.max(colSum() + 2, rx) - 12;
-        }
+        if (rx > 200) detailW = rect.width - Math.max(fixedSum() + 2, rx) - 12;
       }
       setDetailPx(detailW);
     }
@@ -309,26 +308,32 @@ function mbEsc(s) {
     splitter.addEventListener("pointercancel", stopDrag);
   }
 
-  // Spaltenbreiten per Drag anpassen (bleibt gespeichert).
+  // Spaltenbreiten: nur die gezogene Spalte aendert sich, die letzte gleicht aus.
   (function initColResize() {
     const table = document.querySelector("table.jobs-table");
-    if (!table || !colEls.length) return;
-    try {
-      const saved = JSON.parse(localStorage.getItem(COL_KEY) || "null");
-      if (Array.isArray(saved) && saved.length === colEls.length) {
-        saved.forEach(function (w, i) { if (w) colEls[i].style.width = w + "px"; });
-      }
-    } catch (e) {}
+    if (!table || !fixedCols.length) return;
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(COL_KEY) || "null"); } catch (e) {}
+    if (Array.isArray(saved) && saved.length === fixedCols.length) {
+      saved.forEach(function (w, i) { if (w) fixedCols[i].style.width = w + "px"; });
+    } else {
+      const pane = document.querySelector(".jobs-pane");
+      const total = pane ? pane.clientWidth : 0;
+      if (total) fixedCols.forEach(function (c, i) {
+        c.style.width = Math.max(56, Math.round(total * (COL_FRACS[i] || 0.1))) + "px";
+      });
+    }
     function persist() {
       try {
-        localStorage.setItem(COL_KEY, JSON.stringify(colEls.map(function (c) {
+        localStorage.setItem(COL_KEY, JSON.stringify(fixedCols.map(function (c) {
           return parseInt(c.style.width, 10) || 0;
         })));
       } catch (e) {}
     }
     const ths = Array.prototype.slice.call(table.querySelectorAll("thead th"));
-    ths.forEach(function (th, i) {
-      if (i >= colEls.length - 1) return;
+    fixedCols.forEach(function (col, i) {
+      const th = ths[i];
+      if (!th) return;
       const handle = document.createElement("span");
       handle.className = "col-resize";
       handle.title = "Spaltenbreite ziehen";
@@ -345,7 +350,7 @@ function mbEsc(s) {
       });
       handle.addEventListener("pointermove", function (e) {
         if (!active) return;
-        colEls[i].style.width = Math.max(56, startW + (e.clientX - startX)) + "px";
+        col.style.width = Math.max(56, startW + (e.clientX - startX)) + "px";
       });
       const stop = function () {
         if (!active) return;
@@ -357,6 +362,22 @@ function mbEsc(s) {
       handle.addEventListener("pointercancel", stop);
     });
   })();
+
+  // Suchfeld: Breite von der Position des Remote-Feldes bis kurz vor die beiden Buttons.
+  function fitSearchExtra() {
+    const inp = document.getElementById("search-extra");
+    const search = document.getElementById("btn-search");
+    const remote = document.getElementById("f-remote");
+    if (!inp || !search || !remote) return;
+    const w = search.getBoundingClientRect().left - 10 - remote.getBoundingClientRect().left;
+    if (!isFinite(w)) return;
+    inp.style.width = Math.max(170, Math.min(w, 640)) + "px";
+  }
+  fitSearchExtra();
+  if (window._mbHeadResize) window.removeEventListener("resize", window._mbHeadResize);
+  let headTo;
+  window._mbHeadResize = function () { clearTimeout(headTo); headTo = setTimeout(fitSearchExtra, 150); };
+  window.addEventListener("resize", window._mbHeadResize);
 
   renderList();
   const pre = window.MB_PRESELECT ? parseInt(window.MB_PRESELECT, 10) : null;
