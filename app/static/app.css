@@ -76,12 +76,12 @@ header.nav .brand {
   color: var(--ink-strong); margin-right: 24px; display: flex; align-items: center; gap: 10px;
 }
 header.nav a.navlink {
-  color: var(--muted); padding: 8px 2px; margin: 0 13px;
-  border-bottom: 2px solid transparent; font-size: 13.5px;
+  color: var(--muted); padding: 8px 2px; margin: 0 15px;
+  border-bottom: 2px solid transparent; font-size: 15px; font-weight: 500;
   transition: color .15s, border-color .15s;
 }
 header.nav a.navlink:hover { color: var(--ink-strong); text-decoration: none; }
-header.nav a.navlink.active { color: var(--ink-strong); border-bottom-color: var(--accent); }
+header.nav a.navlink.active { color: var(--ink-strong); font-weight: 700; border-bottom-color: var(--accent); }
 header.nav .spacer { flex: 1; }
 header.nav button.navlink {
   background: transparent; border: none; cursor: pointer; font: inherit;
