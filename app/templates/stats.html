@@ -1,23 +1,70 @@
 {% extends "base.html" %}
 {% set page_title = t('stats.title') %}
 {% block content %}
-<h1>{{ t('stats.title') }}</h1>
-<p class="subtitle">{{ t('stats.subtitle') }}</p>
+<div class="page-head">
+  <div>
+    <h1>{{ t('stats.title') }}</h1>
+    <p class="subtitle" style="margin:2px 0 0">{{ t('stats.subtitle') }}</p>
+  </div>
+</div>
 
+<div class="stack stats-page">
 <div class="grid cols-4" id="stat-cards"></div>
 
-<div class="grid cols-2" style="margin-top:20px">
-  <div class="card"><h2>{{ t('stats.by_status') }}</h2><div id="chart-status"></div></div>
-  <div class="card"><h2>{{ t('stats.phases') }}</h2><div id="chart-phases"></div></div>
+<div class="card chart-card">
+  <div class="card-head">
+    <div>
+      <h2>{{ t('stats.per_day') }}</h2>
+      <span class="card-sub" id="daily-sub"></span>
+    </div>
+    <div class="legend-inline" id="daily-legend"></div>
+  </div>
+  <div id="chart-daily" class="chart-line"></div>
 </div>
-<div class="grid cols-2" style="margin-top:20px">
-  <div class="card"><h2>{{ t('stats.per_month') }}</h2><div id="chart-months"></div></div>
-  <div class="card"><h2>{{ t('stats.fit') }}</h2><div id="chart-fit"></div></div>
+
+<div class="grid cols-2">
+  <div class="card">
+    <div class="card-head"><h2>{{ t('stats.by_status') }}</h2></div>
+    <div id="chart-status"></div>
+  </div>
+  <div class="card">
+    <div class="card-head"><h2>{{ t('stats.funnel') }}</h2></div>
+    <div id="chart-funnel"></div>
+  </div>
 </div>
-<div class="card" style="margin-top:20px"><h2>{{ t('stats.sources') }}</h2><div id="chart-sources"></div></div>
+
+<div class="grid cols-2">
+  <div class="card">
+    <div class="card-head"><h2>{{ t('stats.phases') }}</h2></div>
+    <div id="chart-phases"></div>
+  </div>
+  <div class="card">
+    <div class="card-head">
+      <h2>{{ t('stats.fit') }}</h2>
+      <span class="card-sub" id="fit-meta"></span>
+    </div>
+    <div id="chart-fit"></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>{{ t('stats.sources') }}</h2></div>
+  <div id="chart-sources"></div>
+</div>
+</div>
 
 <script>
 window.MB_STATS = {{ stats_json|safe }};
-window.MB_STATS_LABELS = { total: {{ t('stats.total')|tojson }}, applied: {{ t('stats.applied')|tojson }}, interviews: {{ t('stats.interviews')|tojson }}, rejections: {{ t('stats.rejections')|tojson }} };
+window.MB_STATS_LABELS = {
+  total: {{ t('stats.total')|tojson }}, applied: {{ t('stats.applied')|tojson }},
+  interviews: {{ t('stats.interviews')|tojson }}, rejections: {{ t('stats.rejections')|tojson }},
+  offers: {{ t('stats.offers')|tojson }}, response_rate: {{ t('stats.response_rate')|tojson }},
+  per_day: {{ t('stats.per_day')|tojson }}, cumulative: {{ t('stats.cumulative')|tojson }},
+  responses: {{ t('stats.responses')|tojson }}, found: {{ t('stats.found')|tojson }},
+  fit_avg: {{ t('stats.fit_avg')|tojson }}, fit_median: {{ t('stats.fit_median')|tojson }},
+  fit_scored: {{ t('stats.fit_scored')|tojson }}, funnel: {{ t('stats.funnel')|tojson }},
+  reached: {{ t('stats.reached')|tojson }}, from: {{ t('stats.from')|tojson }},
+  per_application: {{ t('stats.per_application')|tojson }}, responses_per_day: {{ t('stats.responses_per_day')|tojson }}
+};
 </script>
 {% endblock %}

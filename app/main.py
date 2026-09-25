@@ -7,6 +7,7 @@ import shutil
 import signal
 import threading
 import time
+from datetime import date, timedelta
 
 from fastapi import FastAPI, Request, UploadFile, File, Form
 from fastapi.responses import (
@@ -216,32 +217,65 @@ def stats(request: Request):
     for row in db.query("SELECT status, COUNT(*) n FROM jobs GROUP BY status"):
         status_counts[row["status"]] = row["n"]
     phase_rows = db.query("SELECT phase, COUNT(*) n FROM applications GROUP BY phase ORDER BY n DESC")
-    months = db.query("SELECT substr(found_at,1,7) m, COUNT(*) n FROM jobs "
-                      "WHERE found_at<>'' GROUP BY m ORDER BY m")
-    fit = {"0-49": 0, "50-59": 0, "60-69": 0, "70-79": 0, "80-89": 0, "90-100": 0}
-    for row in db.query("SELECT score FROM jobs"):
-        s = row["score"] or 0
-        key = ("0-49" if s < 50 else "50-59" if s < 60 else "60-69" if s < 70
-               else "70-79" if s < 80 else "80-89" if s < 90 else "90-100")
-        fit[key] += 1
+
+    found_rows = db.query("SELECT substr(found_at,1,10) d, COUNT(*) n FROM jobs "
+                          "WHERE found_at<>'' GROUP BY d ORDER BY d")
+    resp_rows = db.query("SELECT substr(response_at,1,10) d, COUNT(*) n FROM applications "
+                         "WHERE response_at<>'' GROUP BY d ORDER BY d")
+    fmap = {r["d"]: r["n"] for r in found_rows}
+    rmap = {r["d"]: r["n"] for r in resp_rows}
+    daily = []
+    keys = [k for k in list(fmap) + list(rmap) if k]
+    if keys:
+        start, end = date.fromisoformat(min(keys)), date.fromisoformat(max(keys))
+        if (end - start).days > 400:
+            start = end - timedelta(days=400)
+        cur = start
+        while cur <= end:
+            k = cur.isoformat()
+            daily.append({"d": k, "found": fmap.get(k, 0), "responses": rmap.get(k, 0)})
+            cur += timedelta(days=1)
+
+    fits = [(r["score"] or 0) for r in db.query("SELECT score FROM jobs") if (r["score"] or 0) > 0]
+    fit = {("%d-%d" % (i, i + 9)): 0 for i in range(0, 90, 10)}
+    fit["90-100"] = 0
+    for s in fits:
+        key = "90-100" if s >= 90 else "%d-%d" % (s // 10 * 10, s // 10 * 10 + 9)
+        fit[key] = fit.get(key, 0) + 1
+    fit_sorted = sorted(fits)
+    fit_median = fit_sorted[len(fit_sorted) // 2] if fit_sorted else 0
+    fit_avg = round(sum(fits) / len(fits)) if fits else 0
+
     sources = db.query("SELECT source, COUNT(*) n FROM jobs GROUP BY source ORDER BY n DESC")
     lang = db.get_setting("language", "de")
     total = sum(status_counts.values())
     applied = sum(v for k, v in status_counts.items()
                   if k in ("beworben", "interview", "angebot", "abgelehnt"))
+    responses = db.one("SELECT COUNT(*) n FROM applications")["n"]
+    interviews = status_counts.get("interview", 0)
+    offers = status_counts.get("angebot", 0)
+    rejections = status_counts.get("abgelehnt", 0)
     data = {
-        "total": total, "applied": applied,
-        "with_response": db.one("SELECT COUNT(*) n FROM applications")["n"],
-        "interviews": status_counts.get("interview", 0),
-        "rejections": status_counts.get("abgelehnt", 0),
+        "total": total, "applied": applied, "with_response": responses,
+        "interviews": interviews, "rejections": rejections, "offers": offers,
         "found": status_counts.get("gefunden", 0),
+        "response_rate": round(responses / applied * 100) if applied else 0,
+        "interview_rate": round(interviews / applied * 100) if applied else 0,
         "status_counts": status_counts,
         "status_labels": config.status_labels(lang),
         "status_colors": config.STATUS_COLORS,
         "phases": [{"label": r["phase"], "n": r["n"]} for r in phase_rows],
-        "months": [{"label": r["m"], "n": r["n"]} for r in months],
+        "daily": daily,
         "fit": [{"label": k, "n": v} for k, v in fit.items()],
+        "fit_avg": fit_avg, "fit_median": fit_median, "fit_n": len(fits),
         "sources": [{"label": r["source"] or "?", "n": r["n"]} for r in sources],
+        "funnel": [
+            {"key": "found", "n": total},
+            {"key": "applied", "n": applied},
+            {"key": "response", "n": responses},
+            {"key": "interview", "n": interviews},
+            {"key": "offer", "n": offers},
+        ],
     }
     return tr("stats.html", _ctx(request, stats_json=json.dumps(data, ensure_ascii=False)))
 

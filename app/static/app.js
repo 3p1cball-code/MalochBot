@@ -439,57 +439,227 @@ window.mbDocImprove = function (id) {
 };
 
 /* ---------- Statistiken ---------- */
-function mbDonut(container, items) {
+function mbCssVar(name, fallback) {
+  try {
+    const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return v || fallback;
+  } catch (e) { return fallback; }
+}
+
+function mbHexLerp(a, b, t) {
+  function p(h) { h = h.replace("#", ""); if (h.length === 3) h = h.split("").map(function (c) { return c + c; }).join(""); return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]; }
+  const A = p(a), B = p(b);
+  const c = A.map(function (v, i) { return Math.round(v + (B[i] - v) * t); });
+  return "rgb(" + c.join(",") + ")";
+}
+
+function mbNiceCeil(v) {
+  v = Math.max(1, v || 1);
+  if (v <= 5) return Math.ceil(v);
+  const pow = Math.pow(10, Math.floor(Math.log10(v)));
+  const cands = [1, 2, 2.5, 5, 10];
+  for (let i = 0; i < cands.length; i++) { const m = cands[i] * pow; if (m >= v) return m; }
+  return 10 * pow;
+}
+
+/* Liniendiagramm: x = Datum, y = Treffer (und optional Antworten). Reines SVG. */
+function mbLineChart(container, points, opts) {
   if (!container) return;
-  const total = items.reduce(function (a, b) { return a + b.n; }, 0) || 1;
+  opts = opts || {};
+  const labels = opts.labels || {};
+  const shortDate = function (d) { return d ? d.slice(8, 10) + "." + d.slice(5, 7) + "." : ""; };
+  const fullDate = function (d) { return d ? d.slice(8, 10) + "." + d.slice(5, 7) + "." + d.slice(0, 4) : ""; };
+  function render() {
+    const n = points.length;
+    if (!n) { container.innerHTML = '<p class="muted">Keine Daten.</p>'; return; }
+    const w = Math.max(320, container.clientWidth || 680);
+    const h = opts.height || 260;
+    const pad = { l: 40, r: 16, t: 18, b: 30 };
+    const iw = w - pad.l - pad.r, ih = h - pad.t - pad.b;
+    let maxv = 1;
+    points.forEach(function (p) { maxv = Math.max(maxv, p.found || 0, opts.second ? (p.responses || 0) : 0); });
+    const yMax = mbNiceCeil(maxv);
+    const X = function (i) { return n === 1 ? pad.l + iw / 2 : pad.l + i * iw / (n - 1); };
+    const Y = function (v) { return pad.t + ih - (v / yMax) * ih; };
+    const uid = "ln" + Math.random().toString(36).slice(2, 8);
+    const colA = opts.color || "#4f46e5";
+    const colB = opts.secondColor || "#14b8a6";
+    let s = '<svg class="chart-svg" viewBox="0 0 ' + w + " " + h + '" width="' + w + '" height="' + h + '">';
+    s += '<defs><linearGradient id="' + uid + '" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0%" stop-color="' + colA + '" stop-opacity="0.30"/>' +
+      '<stop offset="100%" stop-color="' + colA + '" stop-opacity="0"/></linearGradient></defs>';
+    const steps = 4;
+    for (let i = 0; i <= steps; i++) {
+      const v = Math.round(yMax * i / steps); const yy = Y(v);
+      s += '<line class="grid" x1="' + pad.l + '" y1="' + yy + '" x2="' + (w - pad.r) + '" y2="' + yy + '"/>';
+      s += '<text class="axis y" x="' + (pad.l - 8) + '" y="' + (yy + 4) + '">' + v + "</text>";
+    }
+    const seen = {};
+    const ticks = Math.min(n, 7);
+    for (let k = 0; k < ticks; k++) {
+      const i = Math.round(k * (n - 1) / (ticks - 1 || 1));
+      if (seen[i]) continue; seen[i] = 1;
+      s += '<text class="axis x" x="' + X(i) + '" y="' + (h - 9) + '">' + shortDate(points[i].d) + "</text>";
+    }
+    const path = function (key) {
+      let d = "";
+      points.forEach(function (p, i) { d += (i ? "L" : "M") + X(i) + " " + Y(p[key] || 0) + " "; });
+      return d;
+    };
+    s += '<path class="area" d="' + path("found") + "L" + X(n - 1) + " " + (pad.t + ih) + " L" + X(0) + " " + (pad.t + ih) + ' Z" fill="url(#' + uid + ')"/>';
+    if (opts.second) s += '<path class="line-b" d="' + path("responses") + '" style="stroke:' + colB + '"/>';
+    s += '<path class="line-a" d="' + path("found") + '" style="stroke:' + colA + '"/>';
+    if (n <= 48) {
+      points.forEach(function (p, i) {
+        if ((p.found || 0) > 0) s += '<circle class="dot-a" cx="' + X(i) + '" cy="' + Y(p.found) + '" r="2.8" style="fill:' + colA + '"/>';
+        if (opts.second && (p.responses || 0) > 0) s += '<circle class="dot-b" cx="' + X(i) + '" cy="' + Y(p.responses) + '" r="2.5" style="fill:' + colB + '"/>';
+      });
+    }
+    s += '<line class="hover-guide" x1="0" y1="' + pad.t + '" x2="0" y2="' + (pad.t + ih) + '" style="opacity:0"/>';
+    s += '<circle class="hover-a" r="4.5" style="opacity:0"/>';
+    if (opts.second) s += '<circle class="hover-b" r="4" style="opacity:0"/>';
+    s += '<rect class="hover-capture" x="' + pad.l + '" y="' + pad.t + '" width="' + iw + '" height="' + ih + '" fill="transparent"/>';
+    s += "</svg>";
+    s += '<div class="chart-tip"></div>';
+    container.innerHTML = s;
+    const svg = container.querySelector("svg");
+    const guide = svg.querySelector(".hover-guide");
+    const ha = svg.querySelector(".hover-a");
+    const hb = svg.querySelector(".hover-b");
+    const tip = container.querySelector(".chart-tip");
+    const capture = svg.querySelector(".hover-capture");
+    capture.addEventListener("mousemove", function (ev) {
+      const r = svg.getBoundingClientRect();
+      const scale = r.width / w;
+      const mx = (ev.clientX - r.left) / scale;
+      let i = Math.round((mx - pad.l) / (iw / (n - 1 || 1)));
+      i = Math.max(0, Math.min(n - 1, i));
+      const p = points[i]; const xx = X(i);
+      guide.setAttribute("x1", xx); guide.setAttribute("x2", xx); guide.style.opacity = 1;
+      ha.setAttribute("cx", xx); ha.setAttribute("cy", Y(p.found || 0)); ha.style.opacity = 1;
+      if (hb) { hb.setAttribute("cx", xx); hb.setAttribute("cy", Y(p.responses || 0)); hb.style.opacity = 1; }
+      let html = "<b>" + fullDate(p.d) + "</b>";
+      html += '<span class="tip-row"><i style="background:' + colA + '"></i>' + (labels.found || "Gefunden") + "<b>" + (p.found || 0) + "</b></span>";
+      if (opts.second) html += '<span class="tip-row"><i style="background:' + colB + '"></i>' + (labels.responses || "Antworten") + "<b>" + (p.responses || 0) + "</b></span>";
+      tip.innerHTML = html;
+      tip.style.opacity = 1;
+      let left = xx * scale + 12;
+      if (left > r.width - 150) left = xx * scale - 150;
+      tip.style.left = Math.max(4, left) + "px";
+    });
+    capture.addEventListener("mouseleave", function () {
+      guide.style.opacity = 0; ha.style.opacity = 0; if (hb) hb.style.opacity = 0; tip.style.opacity = 0;
+    });
+  }
+  render();
+  if (window._mbLineResize) window.removeEventListener("resize", window._mbLineResize);
+  let to;
+  window._mbLineResize = function () { clearTimeout(to); to = setTimeout(render, 150); };
+  window.addEventListener("resize", window._mbLineResize);
+}
+
+function mbDonut(container, items, center) {
+  if (!container) return;
+  const total = items.reduce(function (a, b) { return a + b.n; }, 0);
+  if (!total) { container.innerHTML = '<p class="muted">—</p>'; return; }
   let acc = 0; const stops = [];
   items.forEach(function (it) {
-    const start = acc / total * 100; acc += it.n; const end = acc / total * 100;
-    stops.push((it.color || "#94a3b8") + " " + start + "% " + end + "%");
+    const start = acc / total * 100; acc += it.n;
+    stops.push((it.color || "#94a3b8") + " " + start + "% " + (acc / total * 100) + "%");
   });
   container.innerHTML = '<div class="donut-wrap"><div class="donut" style="background:conic-gradient(' +
-    stops.join(",") + ')"></div>' +
+    stops.join(",") + ')"><div class="donut-center"><b>' + total + "</b><span>" + mbEsc(center || "") + "</span></div></div>" +
     '<ul class="legend">' + items.map(function (it) {
+      const pct = Math.round(it.n / total * 100);
       return '<li><span class="dot" style="background:' + (it.color || "#94a3b8") + '"></span>' +
-        mbEsc(it.label) + " <b>" + it.n + "</b></li>";
+        mbEsc(it.label) + '<span class="legend-pct">' + pct + "%</span><b>" + it.n + "</b></li>";
     }).join("") + "</ul></div>";
 }
 
-function mbBars(container, items, color) {
+function mbBars(container, items, opts) {
   if (!container) return;
+  opts = opts || {};
+  const color = opts.color || "var(--accent)";
   const max = Math.max.apply(null, [1].concat(items.map(function (i) { return i.n; })));
-  container.innerHTML = items.map(function (it) {
+  container.innerHTML = items.map(function (it, i) {
+    const c = opts.colorFn ? opts.colorFn(it, i, items.length) : color;
     return '<div class="bar-row"><span class="bar-label">' + mbEsc(it.label) + "</span>" +
-      '<span class="bar"><span class="bar-fill" style="width:' + (it.n / max * 100) +
-      "%;background:" + (color || "var(--accent)") + '"></span></span>' +
+      '<span class="bar"><span class="bar-fill" style="width:' + (it.n / max * 100) + "%;background:" + c + '"></span></span>' +
       '<span class="bar-num">' + it.n + "</span></div>";
   }).join("") || '<p class="muted">—</p>';
+}
+
+function mbFunnel(container, items) {
+  if (!container) return;
+  const top = Math.max(1, items.length ? items[0].n : 1);
+  container.innerHTML = '<div class="funnel">' + items.map(function (it) {
+    const pct = it.n / top * 100;
+    const width = it.n ? Math.max(9, pct) : 0;
+    return '<div class="funnel-row"><div class="funnel-bar" style="width:' + width + "%;background:" + it.color + '">' +
+      "<span>" + mbEsc(it.label) + "</span><b>" + it.n + "</b></div>" +
+      '<span class="funnel-pct">' + Math.round(pct) + "%</span></div>";
+  }).join("") + "</div>";
 }
 
 (function initStats() {
   const s = window.MB_STATS;
   if (!s || !document.getElementById("stat-cards")) return;
   const LBL = window.MB_STATS_LABELS || {};
+  const accent = mbCssVar("--accent", "#4f46e5");
+  const muted = mbCssVar("--muted", "#94a3b8");
+  const teal = "#14b8a6";
+
   const cards = [
-    [LBL.total || "Jobs gesamt", s.total, "#64748b"],
-    [LBL.applied || "Beworben (bestätigt)", s.applied, "#6366f1"],
-    [LBL.interviews || "Interviews", s.interviews, "#14b8a6"],
-    [LBL.rejections || "Absagen", s.rejections, "#ef4444"]
+    { v: s.total, l: LBL.total || "Jobs gesamt", c: muted, sub: "" },
+    { v: s.applied, l: LBL.applied || "Beworben (bestätigt)", c: "#6366f1", sub: s.total ? Math.round(s.applied / s.total * 100) + "% " + (LBL.from || "von") + " " + s.total : "" },
+    { v: s.interviews, l: LBL.interviews || "Interviews", c: teal, sub: (LBL.response_rate || "Antwortquote") + " " + (s.response_rate || 0) + "%" },
+    { v: s.rejections, l: LBL.rejections || "Absagen", c: "#ef4444", sub: s.applied ? Math.round(s.rejections / s.applied * 100) + "% " + (LBL.per_application || "") : "" },
   ];
   document.getElementById("stat-cards").innerHTML = cards.map(function (c) {
-    return '<div class="card stat"><div class="num" style="color:' + c[2] + '">' + c[1] +
-      '</div><div class="lbl">' + c[0] + "</div></div>";
+    return '<div class="card stat" style="--sc:' + c.c + '"><div class="num">' + c.v +
+      '</div><div class="lbl">' + c.l + '</div>' + (c.sub ? '<div class="sub muted">' + c.sub + "</div>" : "") + "</div>";
   }).join("");
+
+  // Tages-Liniendiagramm
+  const daily = s.daily || [];
+  mbLineChart(document.getElementById("chart-daily"), daily, {
+    color: accent, secondColor: teal, second: true, labels: LBL,
+  });
+  const sub = document.getElementById("daily-sub");
+  if (sub && daily.length) {
+    const sum = daily.reduce(function (a, p) { return a + (p.found || 0); }, 0);
+    const mx = Math.max.apply(null, daily.map(function (p) { return p.found || 0; }));
+    sub.textContent = daily.length + " Tage · " + sum + " " + (LBL.found || "Treffer") + " · Ø " +
+      (sum / daily.length).toFixed(1) + "/Tag · max " + mx;
+  }
+  const legend = document.getElementById("daily-legend");
+  if (legend) legend.innerHTML =
+    '<span class="lg"><i style="background:' + accent + '"></i>' + (LBL.found || "Gefunden") + "</span>" +
+    '<span class="lg"><i style="background:' + teal + '"></i>' + (LBL.responses || "Antworten") + "</span>";
+
   const sc = s.status_counts, sl = s.status_labels, scol = s.status_colors;
   const statusItems = Object.keys(sc).filter(function (k) { return sc[k] > 0; }).map(function (k) {
     return { label: sl[k] || k, n: sc[k], color: scol[k] || "#94a3b8" };
   });
-  mbDonut(document.getElementById("chart-status"), statusItems);
-  const pcol = { "Interview-Prozess": "#14b8a6", "Absage": "#ef4444", "Eingangsbestaetigung": "#6366f1", "Warte auf Rueckmeldung": "#eab308", "Ohne Rueckmeldung": "#94a3b8" };
-  mbDonut(document.getElementById("chart-phases"), (s.phases || []).map(function (p) {
-    return { label: p.label, n: p.n, color: pcol[p.label] || "#94a3b8" };
+  mbDonut(document.getElementById("chart-status"), statusItems, LBL.total || "Jobs");
+
+  const fmap = { found: LBL.found || "Gefunden", applied: LBL.applied || "Beworben", response: LBL.responses || "Antwort", interview: LBL.interviews || "Interview", offer: LBL.offers || "Angebot" };
+  const fcol = { found: muted, applied: "#6366f1", response: accent, interview: teal, offer: "#eab308" };
+  mbFunnel(document.getElementById("chart-funnel"), (s.funnel || []).map(function (f) {
+    return { label: fmap[f.key] || f.key, n: f.n, color: fcol[f.key] || accent };
   }));
-  mbBars(document.getElementById("chart-months"), s.months || [], "var(--accent)");
-  mbBars(document.getElementById("chart-fit"), s.fit || [], "var(--accent)");
-  mbBars(document.getElementById("chart-sources"), s.sources || [], "var(--accent)");
+
+  const pcol = { "Interview-Prozess": teal, "Absage": "#ef4444", "Eingangsbestaetigung": "#6366f1", "Warte auf Rueckmeldung": "#eab308", "Ohne Rueckmeldung": muted };
+  mbDonut(document.getElementById("chart-phases"), (s.phases || []).map(function (p) {
+    return { label: p.label, n: p.n, color: pcol[p.label] || muted };
+  }), LBL.responses || "Antworten");
+
+  const fitItems = s.fit || [];
+  mbBars(document.getElementById("chart-fit"), fitItems, {
+    colorFn: function (it, i, len) { return mbHexLerp("#c7d2fe", "#4338ca", len <= 1 ? 0 : i / (len - 1)); },
+  });
+  const fm = document.getElementById("fit-meta");
+  if (fm) fm.textContent = (LBL.fit_avg || "Ø Fit") + " " + s.fit_avg + " · " + (LBL.fit_median || "Median") + " " + s.fit_median + " · " + s.fit_n + " " + (LBL.fit_scored || "bewertet");
+
+  mbBars(document.getElementById("chart-sources"), s.sources || [], { color: accent });
 })();
