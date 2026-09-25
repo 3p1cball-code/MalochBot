@@ -35,7 +35,9 @@ Angehaengt ist context.json mit:
 
 Es sind ALLE Mails enthalten - viele davon betreffen keine Bewerbung (Newsletter,
 Job-Alerts, privates). Ignoriere solche. Ordne eine Mail nur dann einem Job zu, wenn
-Firma/Absender/Empfaenger/Kontext eindeutig passen.
+Firma/Absender/Empfaenger/Kontext eindeutig passen. Der Firmenbezug steht oft erst im
+Fliesstext oder in der Signatur (z. B. bei Bewerbungsportalen wie Softgarden, Personio,
+Greenhouse) - lies den Body mit.
 
 Ordne JEDEM Job einen Status zu, ausschliesslich anhand der Mails.
 
@@ -201,7 +203,7 @@ def _scan(client, jobs=None):
             is_out = sent or bool(address and address in frm.lower())
             found.append({"date": iso, "folder": folder, "from": frm, "to": to,
                           "direction": "out" if is_out else "in",
-                          "subject": subj, "body": _body(msg, 250)})
+                          "subject": subj, "body": _body(msg, 1200)})
     found.sort(key=lambda m: m["date"])
     return found
 
