@@ -70,19 +70,19 @@
     <label class="small"><input type="checkbox" name="clear_password" value="1"> gespeichertes Passwort löschen</label>
   </div>
 
-  <div><button class="btn btn-primary" type="submit">{{ t('common.save') }}</button></div>
+  <div><button class="btn btn-primary btn-lg btn-block" type="submit">{{ t('common.save') }}</button></div>
 </form>
 
 <div class="card" style="margin-top:20px">
   <h2 style="margin-top:0">{{ t('settings.shutdown') }}</h2>
-  <div class="filters">
-    <form method="post" action="/settings/test-mail" class="inline-form">
+  <div class="settings-actions">
+    <form method="post" action="/settings/test-mail">
       <button class="btn" type="submit">{{ t('settings.test_mail') }}</button>
     </form>
-    <form method="post" action="/settings/import" class="inline-form">
+    <form method="post" action="/settings/import">
       <button class="btn" type="submit">{{ t('settings.import') }}</button>
     </form>
-    <form method="post" action="/shutdown" class="inline-form">
+    <form method="post" action="/shutdown">
       <button class="btn btn-danger" type="submit" onclick="return confirm('MalochBot wirklich beenden?')">{{ t('settings.shutdown') }}</button>
     </form>
   </div>

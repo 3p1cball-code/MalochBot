@@ -208,27 +208,29 @@ function mbEsc(s) {
       "<h3>" + L("history", "Verlauf & Mailverlauf") + "</h3>" +
       (timeline ? '<ul class="timeline">' + timeline + "</ul>" : "<p class=\"muted\">—</p>") +
       "<h3>" + L("actions", "Aktionen") + "</h3>" +
-      '<form method="post" action="/jobs/' + j.id + '/status" class="filters" style="align-items:flex-end">' +
-        '<div class="field"><label>' + L("statuschange", "Status") + '</label><select name="status">' + statusOptions + "</select></div>" +
-        '<div class="field" style="flex:1;min-width:160px"><label>' + L("notec", "Notiz") + '</label><input name="note" placeholder="' + L("optional", "optional") + '"></div>' +
-        '<button class="btn btn-primary" type="submit">' + L("save", "Speichern") + "</button></form>" +
-      (j.manual ? '<form method="post" action="/jobs/' + j.id + '/unlock" class="inline-form" style="margin-top:8px">' +
-        '<button class="btn btn-sm" type="submit">Automatische Status-Updates wieder aktivieren</button></form>' : "") +
-      '<div style="margin-top:16px">' +
-        '<div class="field" style="margin-bottom:10px;max-width:260px"><label>Sprache des Anschreibens</label>' +
+      '<div class="job-actions">' +
+        '<form method="post" action="/jobs/' + j.id + '/status" class="action-row">' +
+          '<div class="field"><label>' + L("statuschange", "Status") + '</label><select name="status">' + statusOptions + "</select></div>" +
+          '<div class="field"><label>' + L("notec", "Notiz") + '</label><input name="note" placeholder="' + L("optional", "optional") + '"></div>' +
+          '<button class="btn btn-primary" type="submit">' + L("save", "Speichern") + "</button>" +
+        "</form>" +
+        (j.manual ? '<form method="post" action="/jobs/' + j.id + '/unlock" class="inline-form">' +
+          '<button class="btn" type="submit">Automatische Status-Updates wieder aktivieren</button></form>' : "") +
+        '<div class="field detail-lang"><label>Sprache des Anschreibens</label>' +
           '<select id="cover-lang">' +
             '<option value="">Automatisch' + (j.language ? " (" + mbEsc(j.language) + ")" : "") + "</option>" +
             '<option value="de">Deutsch</option><option value="en">English</option>' +
           "</select></div>" +
         (j.cover_letter_name
-          ? '<a class="btn btn-primary" style="font-weight:700;padding:10px 16px" href="/generated/' + mbEsc(j.cover_letter_name) + '" download>Anschreiben herunterladen (PDF)</a> ' +
-            '<button class="btn" type="button" onclick="mbMakeCover(' + j.id + ')">Neu erzeugen</button>'
-          : '<button class="btn btn-primary" type="button" onclick="mbMakeCover(' + j.id + ')">' + L("cover", "Anschreiben erzeugen") + "</button>") +
+          ? '<div class="btn-row">' +
+              '<a class="btn btn-primary" href="/generated/' + mbEsc(j.cover_letter_name) + '" download>Anschreiben herunterladen (PDF)</a>' +
+              '<button class="btn" type="button" onclick="mbMakeCover(' + j.id + ')">Neu erzeugen</button>' +
+            "</div>"
+          : '<div class="btn-row"><button class="btn btn-primary" type="button" onclick="mbMakeCover(' + j.id + ')">' + L("cover", "Anschreiben erzeugen") + "</button></div>") +
         (j.cover_letter_name
-          ? '<div style="margin-top:14px">' +
-            '<label class="small">Anschreiben verbessern – was soll geändert werden?</label>' +
-            '<textarea id="cover-feedback" rows="2" placeholder="z. B. kürzer, konkreter auf die Rolle eingehen"></textarea>' +
-            '<button class="btn" type="button" style="margin-top:6px" onclick="mbImproveCover(' + j.id + ')">Feedback einbauen</button></div>'
+          ? '<div class="field"><label class="small">Anschreiben verbessern – was soll geändert werden?</label>' +
+            '<textarea id="cover-feedback" rows="2" placeholder="z. B. kürzer, konkreter auf die Rolle eingehen"></textarea></div>' +
+            '<div class="btn-row"><button class="btn" type="button" onclick="mbImproveCover(' + j.id + ')">Feedback einbauen</button></div>'
           : "") +
       "</div>";
     renderList();
@@ -371,9 +373,10 @@ function mbEsc(s) {
     if (!inp || !search || !remote) return;
     const w = search.getBoundingClientRect().left - 10 - remote.getBoundingClientRect().left;
     if (!isFinite(w)) return;
-    inp.style.width = Math.max(170, Math.min(w, 640)) + "px";
+    inp.style.width = Math.max(170, Math.min(w, window.innerWidth - 40)) + "px";
   }
   fitSearchExtra();
+  requestAnimationFrame(fitSearchExtra);
   if (window._mbHeadResize) window.removeEventListener("resize", window._mbHeadResize);
   let headTo;
   window._mbHeadResize = function () { clearTimeout(headTo); headTo = setTimeout(fitSearchExtra, 150); };
