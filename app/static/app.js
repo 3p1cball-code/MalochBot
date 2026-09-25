@@ -217,18 +217,17 @@ function mbEsc(s) {
         (j.manual
           ? '<form method="post" action="/jobs/' + j.id + '/unlock" class="col-a">' +
             '<button class="btn" type="submit">Automatische Status-Updates wieder aktivieren</button></form>'
-          : '<button class="btn col-a" type="button" disabled>Automatische Updates aktiv</button>') +
+          : '<button class="btn col-a auto-on" type="button" disabled>Automatische Updates aktiv</button>') +
         '<div class="field col-b"><label>Sprache des Anschreibens</label>' +
           '<select id="cover-lang">' +
             '<option value="">Automatisch' + (j.language ? " (" + mbEsc(j.language) + ")" : "") + "</option>" +
             '<option value="de">Deutsch</option><option value="en">English</option>' +
           "</select></div>" +
         (j.cover_letter_name
-          ? '<a class="btn btn-primary span-all" href="/generated/' + mbEsc(j.cover_letter_name) + '" download>Anschreiben herunterladen (PDF)</a>' +
-            '<div class="field span-ab"><label class="small">Anschreiben verbessern – was soll geändert werden?</label>' +
+          ? '<a class="btn btn-primary col-c" href="/generated/' + mbEsc(j.cover_letter_name) + '" download>Anschreiben herunterladen (PDF)</a>' +
+            '<div class="field span-ab"><label class="small">Anschreiben-Feedback (optional – leer lassen = neu erzeugen)</label>' +
             '<textarea id="cover-feedback" rows="2" placeholder="z. B. kürzer, konkreter auf die Rolle eingehen"></textarea></div>' +
-            '<button class="btn col-c" type="button" onclick="mbMakeCover(' + j.id + ')">Neu erzeugen</button>' +
-            '<button class="btn col-c" type="button" onclick="mbImproveCover(' + j.id + ')">Feedback einbauen</button>'
+            '<button class="btn col-c" type="button" onclick="mbCoverAction(' + j.id + ')">Neu erzeugen</button>'
           : '<button class="btn btn-primary col-c" type="button" onclick="mbMakeCover(' + j.id + ')">' + L("cover", "Anschreiben erzeugen") + "</button>") +
       "</div>";
     renderList();
@@ -485,6 +484,13 @@ window.mbImproveCover = function (id) {
       if (window.mbShowDetail) window.mbShowDetail(id);
     },
   });
+};
+
+window.mbCoverAction = function (id) {
+  const ta = document.getElementById("cover-feedback");
+  const feedback = ta ? ta.value.trim() : "";
+  if (feedback) mbImproveCover(id);
+  else mbMakeCover(id);
 };
 
 window.mbQuickCity = function () {

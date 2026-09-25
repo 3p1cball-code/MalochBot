@@ -243,6 +243,8 @@ code { background: var(--panel-2); border: 1px solid var(--line); padding: 1px 6
 .job-actions .col-b { grid-column: 2; }
 .job-actions .col-c { grid-column: 3; }
 .job-actions .col-a .btn, .job-actions .col-c .btn, .job-actions .action-row .btn, .job-actions .btn-block { width: 100%; }
+.job-actions .btn { justify-content: center; }
+.job-actions .auto-on { font-size: 12px; white-space: nowrap; padding-left: 8px; padding-right: 8px; }
 .btn:disabled, .btn[disabled] { opacity: .5; cursor: not-allowed; }
 @media (max-width: 720px) {
   .job-detail { position: static; max-height: none; }
