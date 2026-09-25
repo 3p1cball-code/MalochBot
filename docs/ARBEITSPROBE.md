@@ -129,7 +129,7 @@ liefert ein Ergebnis, das der nächste weiterverwendet:
 - Die Bewertung erzeugt eine Rangfolge und eine Begründung.
 - Die Unterlagen liefern die Grundlage: Lebenslauf, Referenzen, Referenzanschreiben.
 - Das Anschreiben entsteht daraus und wird als Dokument abgelegt.
-- Das Postfach liefert die Fakten zum Status, daraus entsteht der Verlauf.
+- Das Postfach liefert die Fakten zum Status: jede Mail wird einzeln bewertet, daraus entsteht der Verlauf.
 - Diese Arbeitsprobe fließt als Unterlage zurück in die Suche.
 
 Jede Stufe ist einzeln prüfbar, jede ist austauschbar — anderes Modell, anderes Postfach,
@@ -141,14 +141,18 @@ generative KI oder einen Bewerbungsprozess geht.
 
 ## Ein Blick in die Anwendung
 
-Die folgenden Ansichten sind anonymisiert; Firmennamen sind durch neutrale Platzhalter
-ersetzt.
+Die folgenden Ansichten sind anonymisiert; Firmennamen und personenbezogene Inhalte sind
+unkenntlich gemacht. MalochBot gibt es in Hell und Dunkel — hier in Dunkel.
 
-![MalochBot — Jobliste mit Filterleiste und Detailfenster](screenshots/jobs.png)
+![MalochBot — Jobliste mit Filterleiste und Detailfenster](screenshots/02-jobs-dark-detail.png)
 
-![MalochBot — Auswertung über alle Jobs und Bewerbungen](screenshots/stats.png)
+![MalochBot — Jobsuche-Filter (nur Remote, ab Fit 70)](screenshots/03-jobs-dark-filter-remote.png)
 
-![MalochBot — zentrale Unterlagen mit Bewertung und Versionen](screenshots/documents.png)
+![MalochBot — Auswertung über alle Jobs und Bewerbungen](screenshots/06-stats-dark.png)
+
+![MalochBot — zentrale Unterlagen mit Bewertung und Versionen](screenshots/08-documents-dark.png)
+
+![MalochBot — Hilfe und Projektziel in der Anwendung](screenshots/12-about-light.png)
 
 ## Der technische Aufbau
 
@@ -160,7 +164,7 @@ CDNs. SQLite als einzige Datenbank, portabel als eine Datei. Alle Analysen laufe
 opencode-CLI mit frei wählbarem Modell.
 
 **Direkte Abhängigkeiten (requirements.txt):** fastapi, uvicorn[standard], jinja2,
-python-multipart, keyring, cryptography, pypdf, fpdf2. Das ist bewusst schlank — die
+python-multipart, keyring, cryptography, pypdf, fpdf2, pillow. Das ist bewusst schlank — die
 gesamte Oberfläche und alle Engines kommen ohne zusätzliche Frameworks aus.
 
 **Werkzeuge außerhalb des Codes:** opencode als LLM-Harness; systemd für den Dauerbetrieb;
@@ -169,16 +173,17 @@ die PDF-Erzeugung passiert direkt in Python.
 
 **Umfang (Code-Zeilen):**
 
-- Python (Backend, Engines, Adapter): 2.149
-- Templates (Jinja2/HTML): 449
-- CSS und JavaScript: 819
-- Tooling (eigener Markdown-zu-PDF-Renderer): 187
-- Gesamt: rund 3.600 Zeilen
+- Python (Backend, Engines, Adapter): 2.685
+- Templates (Jinja2/HTML): 679
+- CSS und JavaScript: 1.183
+- Tooling (Markdown-zu-PDF, Mail-Suche, Tracking-Test): 374
+- Gesamt: rund 4.900 Zeilen
 
-Die größeren Module: main.py (509 Zeilen, Routen und API), engines/documents.py (326,
-Unterlagen und Anschreiben), engines/tracking.py (278, Postfach-Auswertung), db.py (229,
-Schema und Migrationen), secrets.py (113, Keyring und verschlüsselte Ablage), i18n.py (107,
-zweisprachige Oberfläche), config.py (102), engines/search.py (93), opencode_adapter.py (89).
+Die größeren Module: main.py (644 Zeilen, Routen und API), engines/documents.py (420,
+Unterlagen und Anschreiben), engines/tracking.py (311, Postfach-Auswertung), db.py (237,
+Schema und Migrationen), i18n.py (219, zweisprachige Oberfläche), opencode_adapter.py (126),
+secrets.py (113, Keyring und verschlüsselte Ablage), engines/tracking_mail.py (112,
+mail-zentrische Auswertung), config.py (105), engines/search.py (95).
 
 ---
 
