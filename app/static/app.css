@@ -270,6 +270,10 @@ code { background: var(--panel-2); border: 1px solid var(--line); padding: 1px 6
 .job-actions .btn { justify-content: center; text-align: center; }
 .job-actions .stretch { align-self: stretch; }
 .job-actions .auto-on { font-size: 12px; white-space: nowrap; padding-left: 8px; padding-right: 8px; }
+.detail-footer { display: flex; align-items: center; gap: 8px; margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.detail-footer .grow { flex: 1 1 auto; }
+.pill-fit { font: inherit; border: 1px solid transparent; cursor: pointer; }
+.pill-fit:hover { border-color: var(--accent); }
 .btn:disabled, .btn[disabled] { opacity: .5; cursor: not-allowed; }
 @media (max-width: 720px) {
   .job-detail { position: static; max-height: none; }

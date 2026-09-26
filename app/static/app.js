@@ -233,7 +233,8 @@ function mbEsc(s) {
         (j.hl === "changed" ? '<span class="tag hl-ok">' + L("hl_changed", "aktualisiert") + "</span>" : "") +
         (j.hl === "locked" ? '<span class="tag hl-warn">' + L("hl_locked", "manuell gesperrt – Änderung offen") + "</span>" : "") +
         (j.manual ? '<span class="tag" style="border-color:#f59e0b;color:#b45309">' + L("manual_set", "manuell gesetzt") + "</span>" : "") +
-        (j.score ? '<span class="pill">' + L("fit", "Fit") + " " + j.score + (j.fit ? " · " + mbEsc(j.fit) : "") + "</span>" : "") +
+        '<button type="button" class="pill pill-fit" title="' + L("fit_manual", "Fit anpassen") + '" onclick="mbSetFit(' + j.id + ')">' +
+          L("fit", "Fit") + " " + (j.score || "–") + (j.fit ? " · " + mbEsc(j.fit) : "") + '</button>' +
         '<span class="tag">' + L("source_lbl", "Quelle") + ": " + mbEsc(j.source) + "</span>" +
         (j.published_at ? '<span class="tag">' + L("published", "Veröffentlicht") + ": " + mbEsc(j.published_at) + "</span>" : "") +
         '<span class="tag">' + L("found_lbl", "Gefunden") + ": " + mbEsc((j.found_at || "").slice(0, 10)) + "</span>" +
@@ -265,6 +266,10 @@ function mbEsc(s) {
             '<div class="field span-ab"><textarea id="cover-feedback" rows="2" placeholder="' + L("feedback_ph", "z. B. kürzer, konkreter auf die Rolle eingehen") + '"></textarea></div>' +
             '<button class="btn col-c stretch" type="button" onclick="mbCoverAction(' + j.id + ')">' + L("regen", "Neu erzeugen") + "</button>"
           : '<button class="btn btn-primary col-c" type="button" onclick="mbMakeCover(' + j.id + ')">' + L("cover", "Anschreiben erzeugen") + "</button>") +
+      "</div>" +
+      '<div class="detail-footer">' +
+        '<span class="grow"></span>' +
+        '<button class="btn btn-sm btn-danger" type="button" onclick="mbDeleteJob(' + j.id + ')">' + L("delete_job", "Job löschen") + '</button>' +
       "</div>";
     if (mbIsMobile()) openDetailSheet(id);
     renderList();
@@ -593,6 +598,37 @@ window.mbUnlockJob = function (id) {
     error: mbT("recheck_fail", "Prüfung fehlgeschlagen: "),
     onDone: function () { history.replaceState(null, "", "/?job=" + id); location.reload(); },
   });
+};
+
+window.mbSetFit = function (id) {
+  const LBL = window.MB_I18N || {};
+  const job = (window.MB_JOBS || []).find(function (x) { return x.id === id; });
+  const current = job ? (job.score || 0) : 0;
+  const answer = prompt(LBL.fit_prompt || "Fit anpassen (0–100):", current);
+  if (answer === null) return;
+  const value = parseInt(answer, 10);
+  if (isNaN(value)) return;
+  const v = Math.max(0, Math.min(100, value));
+  fetch("/api/jobs/" + id + "/fit", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ score: v }),
+  }).then(function (r) { return r.json(); }).then(function () {
+    location.href = "/?job=" + id;
+  }).catch(function () {
+    mbRunBar(mbT("save_fail", "Speichern fehlgeschlagen."), "error");
+  });
+};
+
+window.mbDeleteJob = function (id) {
+  const LBL = window.MB_I18N || {};
+  if (!confirm(LBL.delete_confirm || "Diesen Job wirklich löschen?")) return;
+  fetch("/api/jobs/" + id + "/delete", { method: "POST" })
+    .then(function (r) { return r.json(); })
+    .then(function () { location.href = "/"; })
+    .catch(function () {
+      mbRunBar(mbT("save_fail", "Aktion fehlgeschlagen."), "error");
+    });
 };
 
 window.mbQuickCity = function () {

@@ -20,8 +20,10 @@ decisions that actually matter: which job, which cover letter, which interview.
 
 ## Features
 
-- **Find jobs** – start a search with one button; new postings are found, de-duplicated
-  and stored in the database.
+- **Find jobs** – start a search with one button. Two feeders run together: direct
+  **job-board sources** (Germany's Federal Employment Agency via its official JSON API;
+  LinkedIn, Indeed, Glassdoor and Google via optional JobSpy) plus the model's web search.
+  New postings are de-duplicated (same company + role across boards) and stored.
 - **One view for everything** – a filterable list of all jobs on the left (live filters),
   the detail panel on the right with fit rationale, description, location/remote, status,
   links to the posting and company, plus the related emails.
@@ -85,11 +87,30 @@ The installers check/install **opencode**, set up the **web search (MCP)** serve
 a virtual environment and initialise the database. Then, in the browser under **Settings**,
 pick a model and connect your mailbox (one-time setup).
 
-## Web search (MCP) — required for job search
+### Job-board sources
 
-The job search asks the model to research the web. For that, opencode needs the MCP servers
-**brave-search** (web search) and **fetch**. Without them the search finds nothing and fails
-with "no parseable JSON response".
+Next to the model's web search, the search also queries job boards directly (see
+Settings → "Job boards"):
+
+- **Federal Employment Agency** (Bundesagentur für Arbeit) — Germany's largest job
+  database, via its **official public JSON API**. No scraping, no API key, **no extra
+  dependency** (Python standard library only).
+- **JobSpy** — optional package for **LinkedIn, Indeed, Glassdoor, Google**. If it is not
+  installed the source is skipped gracefully; everything else keeps working. Install with
+  `pip install -r requirements-sources.txt` (Python ≤ 3.13; for 3.14 see the notes in that
+  file).
+
+Candidates from boards are scored by the model in a separate, tool-free step which also
+writes the short "what the role is about" summary. Only candidates at or above the
+configured **fit threshold** are stored (web hits too); if the scoring step fails entirely,
+candidates are still stored unscored so nothing is lost. A failure in the web-search step
+no longer discards the board results.
+
+## Web search (MCP) — recommended for job search
+
+The web search adds breadth beyond the boards. For that, opencode needs the MCP servers
+**brave-search** (web search) and **fetch**. Without a Brave key the web search stays
+disabled, but the **Federal Employment Agency source still runs** (it needs no MCP).
 
 - `scripts/setup_opencode_mcp.sh` (Linux/macOS) or `scripts/setup_opencode_mcp.bat`
   (Windows) register the MCP servers in `~/.config/opencode/opencode.json` — the installer
@@ -122,6 +143,8 @@ is reachable on the network. A systemd unit lives at `deploy/malochbot.service` 
 - Python 3.10+
 - [opencode](https://opencode.ai) (the installers try to install it)
 - **Node.js 20+** and **uv** for the web-search MCPs (brave-search/fetch; see above)
+- Optional for extra job boards: **JobSpy** (see `requirements-sources.txt`). The Federal
+  Employment Agency source needs no extra dependency.
 - Optional LibreOffice for PDF export of cover letters (not required — PDFs are produced in Python)
 
 ## Architecture
@@ -137,6 +160,7 @@ MalochBot/
     providers.py     Mail provider presets
     import_legacy.py Import existing data
     engines/         search, tracking, documents
+    engines/sources/ job-board sources (Federal Employment Agency, JobSpy)
     templates/       UI
     static/          CSS/JS
   data/              Runtime data (DB, uploads, logs) – not in the repo

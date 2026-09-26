@@ -153,6 +153,18 @@ DEFAULT_SETTINGS = {
     "fit_threshold": "0",
     "search_doc_ids": "",
     "home_city": "Berlin",
+    # Zusaetzliche Jobboersen-Quellen (siehe app/engines/sources/).
+    "search_sources": "arbeitsagentur,jobspy",
+    "search_terms": "Generative AI, 3D Pipeline, Technical Director, Head of CGI",
+    "source_results": "10",
+    "source_max_candidates": "30",
+    "source_max_age_days": "30",
+    "source_radius_km": "50",
+    "source_detail_max": "20",
+    "jobspy_location": "",
+    "jobspy_sites": "indeed,linkedin",
+    "jobspy_country": "Germany",
+    "jobspy_hours_old": "168",
 }
 
 
@@ -226,6 +238,24 @@ def set_setting(key: str, value: str) -> None:
 
 def all_settings() -> dict:
     return {row["key"]: row["value"] for row in query("SELECT key, value FROM settings")}
+
+
+def is_known(company: str, title: str, url: str = "") -> bool:
+    """Prueft (read-only), ob ein Job schon in der Datenbank steht.
+
+    Gleiche Logik wie upsert_job: gleiche URL ODER gleiche kanonische
+    Firma + Rolle. Fuer die Vorfilterung externer Kandidaten gedacht.
+    """
+    url = (url or "").strip()
+    if url and one("SELECT id FROM jobs WHERE url=?", (url,)):
+        return True
+    target_c, target_t = norm_company(company), norm_title(title)
+    if not (target_c and target_t):
+        return False
+    for row in query("SELECT company, title FROM jobs"):
+        if norm_company(row["company"]) == target_c and norm_title(row["title"]) == target_t:
+            return True
+    return False
 
 
 def upsert_job(job: dict):

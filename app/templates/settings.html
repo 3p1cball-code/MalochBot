@@ -46,6 +46,44 @@
   </div>
 
   <div class="card stack">
+    <h2 style="margin-top:0">{{ t('settings.sources') }}</h2>
+    <p class="small muted">{{ t('settings.sources_hint') }}</p>
+    <div class="field"><label>{{ t('settings.sources_label') }}</label>
+      <input type="hidden" name="sources_present" value="1">
+      <label class="small"><input type="checkbox" name="search_sources" value="arbeitsagentur"
+        {% if 'arbeitsagentur' in (values.search_sources or '') %}checked{% endif %}>
+        {{ t('settings.source_ba') }}</label>
+      <label class="small"><input type="checkbox" name="search_sources" value="jobspy"
+        {% if 'jobspy' in (values.search_sources or '') %}checked{% endif %}>
+        {{ t('settings.source_jobspy') }}</label>
+      {% if not jobspy_ok %}<span class="small muted">{{ t('settings.jobspy_missing') }}</span>{% endif %}
+    </div>
+    <div class="field"><label for="search_terms">{{ t('settings.search_terms') }}</label>
+      <input id="search_terms" name="search_terms" value="{{ values.search_terms or '' }}"
+             placeholder="Generative AI, 3D Pipeline, Technical Director">
+      <div style="margin-top:8px">
+        <button type="button" class="btn" id="btn-terms" onclick="mbSuggestTerms()">{{ t('settings.suggest_terms') }}</button>
+        <span class="small muted" id="terms-status"></span>
+      </div>
+      <span class="small muted">{{ t('settings.search_terms_hint') }}</span>
+    </div>
+    <div class="grid cols-2">
+      <div class="field"><label>{{ t('settings.source_results') }}</label>
+        <input type="number" name="source_results" min="1" max="50" value="{{ values.source_results or 10 }}"></div>
+      <div class="field"><label>{{ t('settings.source_age') }}</label>
+        <input type="number" name="source_max_age_days" min="0" max="100" value="{{ values.source_max_age_days or 30 }}"></div>
+      <div class="field"><label>{{ t('settings.source_radius') }}</label>
+        <input type="number" name="source_radius_km" min="0" max="300" value="{{ values.source_radius_km or 50 }}"></div>
+      <div class="field"><label>{{ t('settings.jobspy_sites') }}</label>
+        <input name="jobspy_sites" value="{{ values.jobspy_sites or '' }}" placeholder="indeed,linkedin"></div>
+      <div class="field"><label>{{ t('settings.jobspy_country') }}</label>
+        <input name="jobspy_country" value="{{ values.jobspy_country or 'Germany' }}"></div>
+      <div class="field"><label>{{ t('settings.jobspy_hours') }}</label>
+        <input type="number" name="jobspy_hours_old" min="24" max="720" value="{{ values.jobspy_hours_old or 168 }}"></div>
+    </div>
+  </div>
+
+  <div class="card stack">
     <h2 style="margin-top:0">{{ t('settings.mail') }}</h2>
     <p class="small muted">{{ t('settings.mail_hint') }}</p>
     <div class="field"><label>{{ t('settings.provider') }}</label>
@@ -95,5 +133,40 @@ window.MB_PROVIDERS = {
   "{{ p.key }}": {"imap": "{{ p.imap }}", "port": {{ p.port }}, "note": {{ p.note|tojson }}}{{ "," if not loop.last }}
 {% endfor %}
 };
+window.MB_TERMS_MSG = {
+  running: {{ t('settings.suggest_running')|tojson }},
+  done: {{ t('settings.suggest_done')|tojson }},
+  fail: {{ t('settings.suggest_fail')|tojson }}
+};
+
+function mbSuggestTerms() {
+  var btn = document.getElementById('btn-terms');
+  var status = document.getElementById('terms-status');
+  btn.disabled = true;
+  status.textContent = window.MB_TERMS_MSG.running;
+  fetch('/settings/suggest-terms', {method: 'POST'})
+    .then(function (r) { return r.json(); })
+    .then(function (d) { mbPollTerms(d.run_id, 0); })
+    .catch(function () { status.textContent = window.MB_TERMS_MSG.fail; btn.disabled = false; });
+}
+
+function mbPollTerms(runId, tries) {
+  var btn = document.getElementById('btn-terms');
+  var status = document.getElementById('terms-status');
+  if (tries > 160) { status.textContent = window.MB_TERMS_MSG.fail; btn.disabled = false; return; }
+  fetch('/api/runs/' + runId)
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d.status === 'laeuft') { setTimeout(function () { mbPollTerms(runId, tries + 1); }, 1500); return; }
+      btn.disabled = false;
+      if (d.status === 'ok' && d.result && d.result.keywords) {
+        document.getElementById('search_terms').value = d.result.keywords;
+        status.textContent = window.MB_TERMS_MSG.done;
+      } else {
+        status.textContent = (d.result && d.result.text) || window.MB_TERMS_MSG.fail;
+      }
+    })
+    .catch(function () { setTimeout(function () { mbPollTerms(runId, tries + 1); }, 1500); });
+}
 </script>
 {% endblock %}

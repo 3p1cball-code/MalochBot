@@ -183,6 +183,25 @@ def api_job_unlock(job_id: int):
     return JSONResponse({"run_id": rid})
 
 
+@app.post("/api/jobs/{job_id}/fit")
+def api_job_fit(job_id: int, score: int = Form(...)):
+    score = max(0, min(100, score))
+    fit = "hoch" if score >= 75 else ("mittel" if score >= 50 else "niedrig")
+    db.execute("UPDATE jobs SET score=?, fit=? WHERE id=?", (score, fit, job_id))
+    db.execute("INSERT INTO events(job_id, ts, kind, text) VALUES(?,?,?,?)",
+               (job_id, db.now_iso(), "status", "Fit manuell auf %d gesetzt" % score))
+    return JSONResponse({"score": score, "fit": fit})
+
+
+@app.post("/api/jobs/{job_id}/delete")
+def api_job_delete(job_id: int):
+    db.execute("DELETE FROM emails WHERE job_id=?", (job_id,))
+    db.execute("DELETE FROM events WHERE job_id=?", (job_id,))
+    db.execute("DELETE FROM applications WHERE job_id=?", (job_id,))
+    db.execute("DELETE FROM jobs WHERE id=?", (job_id,))
+    return JSONResponse({"deleted": job_id})
+
+
 @app.post("/jobs/{job_id}/cover-letter")
 def job_cover_letter(job_id: int):
     run_id = start_background("anschreiben", lambda rid, model: {
@@ -479,11 +498,13 @@ def settings(request: Request, saved: str = ""):
         provider = name.split("/", 1)[0]
         models_by_provider.setdefault(provider, []).append(name)
     documents = db.query("SELECT id, name, kind FROM documents ORDER BY kind, name")
+    from .engines.sources import jobspy_source
     return tr("settings.html", _ctx(
         request, values=values, mail_providers=providers.PROVIDERS,
         models=models, models_by_provider=models_by_provider,
         secret_backend=secrets.store.backend(),
         has_mail_password=bool(secrets.store.get("mail_password", "")),
+        jobspy_ok=jobspy_source.available(),
         saved=saved))
 
 
@@ -492,9 +513,15 @@ async def settings_save(request: Request):
     form = await request.form()
     for key in ("model", "profile", "preferences", "search_extra", "fit_threshold",
                 "home_city", "mail_provider", "mail_email", "mail_host",
-                "mail_port", "mail_folders", "mail_since"):
+                "mail_port", "mail_folders", "mail_since",
+                "search_terms", "source_results", "source_max_age_days",
+                "source_radius_km", "jobspy_sites", "jobspy_country",
+                "jobspy_hours_old", "jobspy_location"):
         if key in form:
             db.set_setting(key, str(form.get(key, "")))
+    if "sources_present" in form:
+        selected = [str(x) for x in form.getlist("search_sources") if str(x).strip()]
+        db.set_setting("search_sources", ",".join(selected))
     password = form.get("mail_password", "")
     if password:
         secrets.store.set("mail_password", password)
@@ -521,6 +548,13 @@ def _test_mail(run_id, model):
         except Exception:
             pass
     return {"status": "ok", "ordner": len(folders)}
+
+
+@app.post("/settings/suggest-terms")
+def settings_suggest_terms():
+    run_id = start_background("suchbegriffe",
+                              lambda rid, model: search_engine.suggest_terms(rid, model))
+    return JSONResponse({"run_id": run_id})
 
 
 @app.post("/settings/import")

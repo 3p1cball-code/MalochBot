@@ -1,0 +1,13 @@
+# Optionale zusätzliche Jobbörsen über JobSpy (LinkedIn, Indeed, Glassdoor, Google).
+#
+# Der Suchlauf funktioniert auch ohne dieses Paket: Die Quelle "Bundesagentur für
+# Arbeit" braucht keine zusätzliche Abhängigkeit, nur die Python-Standardbibliothek.
+#
+# Python 3.10–3.13:
+#     pip install -r requirements-sources.txt
+#
+# Python 3.14: Das PyPI-Release von python-jobspy ist dort derzeit nicht installierbar
+# (alte numpy-/regex-Pins ohne 3.14-Wheels). Stattdessen aus dem Git-Repository:
+#     pip install --no-deps "git+https://github.com/speedyapply/JobSpy.git"
+#     pip install requests beautifulsoup4 pandas numpy pydantic tls-client markdownify python-dateutil
+python-jobspy>=1.1.82

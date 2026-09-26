@@ -22,6 +22,13 @@ call .venv\Scripts\activate.bat
 python -m pip install --upgrade pip >nul
 pip install -r requirements.txt
 
+echo Zusaetzliche Jobboersen (optional: LinkedIn/Indeed via JobSpy) ...
+pip install -r requirements-sources.txt >nul 2>nul
+if errorlevel 1 (
+  echo Hinweis: JobSpy nicht installiert - nur die Bundesagentur-Quelle ist aktiv.
+  echo Fuer LinkedIn/Indeed siehe requirements-sources.txt.
+)
+
 echo Initialisiere Datenbank ...
 python -c "from app import db; db.init_db(); print('OK')"
 

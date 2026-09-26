@@ -38,6 +38,14 @@ source .venv/bin/activate
 python -m pip install --upgrade pip >/dev/null
 pip install -r requirements.txt
 
+echo "Zusätzliche Jobbörsen (optional: LinkedIn/Indeed via JobSpy) ..."
+if [ -f requirements-sources.txt ] && pip install -r requirements-sources.txt >/dev/null 2>&1; then
+  echo "  JobSpy installiert."
+else
+  echo "  Hinweis: JobSpy nicht installiert (z. B. Python 3.14)."
+  echo "  Die Bundesagentur-Quelle läuft ohne Zusatzpakete; für LinkedIn/Indeed siehe requirements-sources.txt."
+fi
+
 echo "Initialisiere Datenbank ..."
 python -c "from app import db; db.init_db(); print('OK:', db.get_setting('model'))"
 
