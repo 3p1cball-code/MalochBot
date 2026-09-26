@@ -1,10 +1,38 @@
 import json
 import os
+import re
 import sqlite3
 import time
+import unicodedata
 from datetime import datetime, timezone
 
 from . import config
+
+
+def _fold(text: str) -> str:
+    """Kleinschreibung + Akzente entfernen, fuer robusten Textvergleich."""
+    text = unicodedata.normalize("NFKD", (text or "").lower())
+    return "".join(c for c in text if not unicodedata.combining(c)).replace("ß", "ss")
+
+
+_LEGAL_SUFFIX = re.compile(r"\b(gmbh|mbh|ag|se|kg|kgaa|ohg|ug|inc|ltd|llc|plc|holding|group)\b")
+_GENDER = re.compile(r"\b(m/w/d|m/f/d|w/m/d|f/m/x|m/w/x|gn|all genders|divers|any gender)\b")
+
+
+def norm_company(name: str) -> str:
+    """Kanonischer Firmenname: Klammer-/Zusatz-/Rechtsform-Anteile fallen weg."""
+    text = _fold(name)
+    text = re.sub(r"\(.*?\)", " ", text)
+    text = re.split(r"\s[–\-|,]\s", text)[0]
+    text = _LEGAL_SUFFIX.sub(" ", text)
+    return re.sub(r"[^a-z0-9]+", " ", text).strip()
+
+
+def norm_title(title: str) -> str:
+    """Kanonischer Rollenname: Gender-/Sonderzeichen-Zusaetze fallen weg."""
+    text = _fold(title)
+    text = _GENDER.sub(" ", text)
+    return re.sub(r"[^a-z0-9]+", " ", text).strip()
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS jobs (
@@ -201,7 +229,21 @@ def all_settings() -> dict:
 
 
 def upsert_job(job: dict):
-    """Fuegt einen Job hinzu, falls neu. Gibt (id, neu_angelegt) zurueck."""
+    """Fuegt einen Job hinzu, falls neu. Gibt (id, neu_angelegt) zurueck.
+
+    Duplikaterkennung unabhaengig von der Quelle: gleiche URL ODER gleiche
+    kanonische Firma + Rolle (Schreibweise/Rechtsform/Gender-Zusatz egal).
+    """
+    company = (job.get("company") or "").strip()
+    title = (job.get("title") or "").strip()
+    url = (job.get("url") or "").strip()
+    target_c, target_t = norm_company(company), norm_title(title)
+    for row in query("SELECT id, company, title, url FROM jobs"):
+        if url and (row["url"] or "").strip() == url:
+            return row["id"], False
+        if target_c and target_t and norm_company(row["company"]) == target_c \
+                and norm_title(row["title"]) == target_t:
+            return row["id"], False
     existing = one("SELECT id FROM jobs WHERE company=? AND title=? AND url=?",
                    (job.get("company", ""), job.get("title", ""), job.get("url", "")))
     if existing:

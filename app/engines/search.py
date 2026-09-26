@@ -16,7 +16,8 @@ Vorlieben / Praeferenzen:
 Zusatzvorgaben:
 {{EXTRA}}
 
-Bereits bekannte Jobs (NICHT erneut vorschlagen):
+Bereits bekannte Jobs. Ein Job gilt als bereits bekannt, wenn Firma UND Rollenbezeichnung
+uebereinstimmen – unabhaengig von URL, Domain oder Jobboerse. Diese NICHT erneut vorschlagen:
 {{EXISTING}}
 
 Lebenslauf / Unterlagen (Auszug):

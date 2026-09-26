@@ -94,6 +94,13 @@ Unterlagen, bekannte Jobs (zur Deduplizierung) und eine Fit-Schwelle. Das Modell
 recherchiert über Websuche und liefert eine strukturierte Liste zurück, die in die
 Datenbank übernommen wird. Bereits bekannte Stellen werden übersprungen.
 
+Die Duplikaterkennung in `db.upsert_job` ist bewusst quellenunabhängig: Ein Job gilt als
+bekannt, wenn die **URL** übereinstimmt **oder** die **kanonische Firma + Rolle** (Klein-
+schreibung, Akzente, Gender-Zusätze wie `(m/w/d)` und Rechtsformen wie `GmbH` werden
+normalisiert). So wird dieselbe Stelle nicht erneut aufgenommen, nur weil sie über eine
+andere Jobbörse/URL hereinkommt — verschiedene Rollen derselben Firma bleiben getrennt.
+Prüfen lässt sich der Bestand mit `PYTHONPATH=. .venv/bin/python tools/check_dupes.py`.
+
 **Tracking.** Das Postfach wird read-only und inkrementell per IMAP gelesen (nur neue
 Nachrichten seit dem letzten Scan). Relevante Mails werden gefiltert und dem Modell zur
 Klassifikation vorgelegt. Das Ergebnis aktualisiert Status und Bewerbungsdatensätze.
