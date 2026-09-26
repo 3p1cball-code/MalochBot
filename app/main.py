@@ -26,6 +26,18 @@ config.ensure_dirs()
 db.init_db()
 
 app = FastAPI(title=config.APP_NAME, version=config.VERSION)
+
+
+@app.middleware("http")
+async def _fresh_html(request: Request, call_next):
+    # Keine Heuristik-Caches fuer Seiten/API: Handy/Browser laedt nach jedem
+    # Update sofort die neue Version (Assets bleiben ueber ?v=BUILD_ID versioniert).
+    response = await call_next(request)
+    if not request.url.path.startswith("/static"):
+        response.headers.setdefault("Cache-Control", "no-store")
+    return response
+
+
 app.mount("/static", StaticFiles(directory=str(config.BASE_DIR / "app" / "static")), name="static")
 templates = Jinja2Templates(directory=str(config.BASE_DIR / "app" / "templates"))
 templates.env.globals["t"] = lambda key: i18n.tr(db.get_setting("language", "de"), key)

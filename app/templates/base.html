@@ -21,13 +21,15 @@
   <header class="nav{% if path == '/' or path.startswith('/documents') or path.startswith('/stats') %} wide{% endif %}">
     <div class="inner">
       <a class="brand" href="/"><img class="mark" src="/static/logo.svg" alt="" width="26" height="26">{{ app_name }}</a>
-      <a class="navlink {{ 'active' if path == '/' }}" href="/">{{ t('nav.jobs') }}</a>
-      <a class="navlink {{ 'active' if path.startswith('/documents') }}" href="/documents">{{ t('nav.documents') }}</a>
-      <a class="navlink {{ 'active' if path.startswith('/stats') }}" href="/stats">{{ t('nav.stats') }}</a>
-      <a class="navlink {{ 'active' if path.startswith('/log') }}" href="/log">{{ t('nav.log') }}</a>
-      <a class="navlink {{ 'active' if path.startswith('/settings') }}" href="/settings">{{ t('nav.settings') }}</a>
+      <nav class="navlinks">
+        <a class="navlink {{ 'active' if path == '/' }}" href="/">{{ t('nav.jobs') }}</a>
+        <a class="navlink {{ 'active' if path.startswith('/documents') }}" href="/documents">{{ t('nav.documents') }}</a>
+        <a class="navlink {{ 'active' if path.startswith('/stats') }}" href="/stats">{{ t('nav.stats') }}</a>
+        <a class="navlink {{ 'active' if path.startswith('/log') }}" href="/log">{{ t('nav.log') }}</a>
+        <a class="navlink {{ 'active' if path.startswith('/settings') }}" href="/settings">{{ t('nav.settings') }}</a>
+      </nav>
       <span class="spacer"></span>
-      <form method="post" action="/language" class="inline-form">
+      <form method="post" action="/language" class="inline-form lang-switch">
         <input type="hidden" name="next" value="{{ request.url.path }}">
         <button class="navlink {{ 'active' if lang == 'de' }}" name="lang" value="de" title="Deutsch">DE</button>
         <button class="navlink {{ 'active' if lang == 'en' }}" name="lang" value="en" title="English">EN</button>

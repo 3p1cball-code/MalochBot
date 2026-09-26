@@ -10,6 +10,19 @@ function mbToggleTheme() {
   mbSetTheme(cur === "dunkel" ? "hell" : "dunkel");
 }
 
+/* Mobil-Umschaltpunkt: identisch zur CSS-Media-Query (760px). */
+function mbIsMobile() {
+  return window.matchMedia("(max-width: 760px)").matches;
+}
+
+/* Aktiven Tab in der mobilen, horizontal scrollbaren Leiste sichtbar machen. */
+(function () {
+  const active = document.querySelector("header.nav .navlinks .active");
+  if (active && active.scrollIntoView) {
+    try { active.scrollIntoView({ inline: "center", block: "nearest" }); } catch (e) {}
+  }
+})();
+
 (function () {
   const box = document.getElementById("log-box");
   if (box && box.dataset.runId) {
@@ -129,6 +142,25 @@ function mbEsc(s) {
     return out;
   }
 
+  function activeFilterCount() {
+    let n = 0;
+    if ((document.getElementById("f-q").value || "").trim()) n++;
+    if (document.getElementById("f-remote").value) n++;
+    if ((document.getElementById("f-loc").value || "").trim()) n++;
+    if (document.getElementById("f-from").value) n++;
+    if (document.getElementById("f-to").value) n++;
+    if (parseInt(document.getElementById("f-fit").value || "0", 10) !== (window.MB_FIT_THRESHOLD || 0)) n++;
+    if (statusBoxes.some(function (c) { return !c.checked; })) n++;
+    return n;
+  }
+  function updateFilterCount() {
+    const el = document.getElementById("filters-count");
+    if (!el) return;
+    const n = activeFilterCount();
+    el.textContent = n ? n + " " + L("filter_active", "aktiv") : "";
+    el.hidden = !n;
+  }
+
   function renderList() {
     const tbody = document.getElementById("job-rows");
     const items = activeJobs();
@@ -141,11 +173,12 @@ function mbEsc(s) {
         '<td class="ti">' + mbEsc(j.title) + "</td>" +
         '<td class="ort">' + (j.location ? mbEsc(j.location) : "–") +
           (j.remote ? ' <span class="remote">· remote</span>' : "") + "</td>" +
-        '<td class="fit">' + (j.score || "–") + "</td>" +
-        "<td>" + badge + "</td>" +
-        '<td class="date">' + mbEsc((j.found_at || "").slice(0, 10)) + "</td>" +
+        '<td class="fit" data-lbl="' + mbEsc(L("fit", "Fit")) + '">' + (j.score || "–") + "</td>" +
+        '<td class="st">' + badge + "</td>" +
+        '<td class="date" data-lbl="' + mbEsc(L("found_lbl", "Gefunden")) + '">' + mbEsc((j.found_at || "").slice(0, 10)) + "</td>" +
         "</tr>";
-    }).join("") || '<tr><td colspan="6" class="muted" style="padding:20px">' + L("none", "Keine Jobs.") + "</td></tr>";
+    }).join("") || '<tr class="empty"><td colspan="6" class="muted">' + L("none", "Keine Jobs.") + "</td></tr>";
+    updateFilterCount();
 
     tbody.querySelectorAll("tr[data-id]").forEach(function (el) {
       el.addEventListener("click", function () { showDetail(parseInt(el.dataset.id, 10)); });
@@ -190,6 +223,9 @@ function mbEsc(s) {
     }).join("");
 
     box.innerHTML =
+      '<button class="detail-close" type="button" onclick="mbCloseDetail()">' +
+        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>' +
+        "<span>" + L("back", "Zurück") + "</span></button>" +
       "<h2>" + mbEsc(j.title) + "</h2>" +
       '<p class="subtitle" style="margin-top:2px"><strong>' + mbEsc(j.company) + "</strong>" +
         (j.location ? " · " + mbEsc(j.location) : "") + (j.remote ? ' · <span class="remote">remote</span>' : "") + "</p>" +
@@ -230,6 +266,7 @@ function mbEsc(s) {
             '<button class="btn col-c stretch" type="button" onclick="mbCoverAction(' + j.id + ')">' + L("regen", "Neu erzeugen") + "</button>"
           : '<button class="btn btn-primary col-c" type="button" onclick="mbMakeCover(' + j.id + ')">' + L("cover", "Anschreiben erzeugen") + "</button>") +
       "</div>";
+    if (mbIsMobile()) openDetailSheet(id);
     renderList();
   }
 
@@ -368,6 +405,7 @@ function mbEsc(s) {
     const search = document.getElementById("btn-search");
     const remote = document.getElementById("f-remote");
     if (!inp || !search || !remote) return;
+    if (mbIsMobile()) { inp.style.width = ""; return; }
     const w = search.getBoundingClientRect().left - 10 - remote.getBoundingClientRect().left;
     if (!isFinite(w)) return;
     inp.style.width = Math.max(170, Math.min(w, window.innerWidth - 40)) + "px";
@@ -378,6 +416,60 @@ function mbEsc(s) {
   let headTo;
   window._mbHeadResize = function () { clearTimeout(headTo); headTo = setTimeout(fitSearchExtra, 150); };
   window.addEventListener("resize", window._mbHeadResize);
+
+  // Mobil: Detail als Vollbild-Sheet statt unsichtbar unter der langen Liste.
+  function openDetailSheet(id) {
+    const box = document.getElementById("job-detail");
+    if (!box) return;
+    box.classList.add("open");
+    document.body.classList.add("detail-open");
+    box.scrollTop = 0;
+    try {
+      if (history.state && history.state.mbJob) history.replaceState({ mbJob: id }, "", "/?job=" + id);
+      else history.pushState({ mbJob: id }, "", "/?job=" + id);
+    } catch (e) {}
+  }
+  function closeDetailSheet() {
+    const box = document.getElementById("job-detail");
+    if (box) box.classList.remove("open");
+    document.body.classList.remove("detail-open");
+  }
+  window.mbCloseDetail = function () {
+    if (history.state && history.state.mbJob) { try { history.back(); return; } catch (e) {} }
+    closeDetailSheet();
+  };
+  window.addEventListener("popstate", function () {
+    if (history.state && history.state.mbJob) {
+      const box = document.getElementById("job-detail");
+      if (box) { box.classList.add("open"); document.body.classList.add("detail-open"); box.scrollTop = 0; }
+    } else {
+      closeDetailSheet();
+    }
+  });
+
+  // Filter mobil standardmäßig eingeklappt; auf Desktop immer offen.
+  const filtersCard = document.getElementById("filters-card");
+  if (filtersCard && mbIsMobile()) {
+    filtersCard.classList.add("collapsed");
+    const tb = document.getElementById("filters-toggle");
+    if (tb) tb.setAttribute("aria-expanded", "false");
+  }
+  window.mbToggleFilters = function () {
+    const card = document.getElementById("filters-card");
+    if (!card) return;
+    const collapsed = card.classList.toggle("collapsed");
+    const tb = document.getElementById("filters-toggle");
+    if (tb) tb.setAttribute("aria-expanded", collapsed ? "false" : "true");
+  };
+  window._mbFiltersResize = function () {
+    const card = document.getElementById("filters-card");
+    if (card && !mbIsMobile()) {
+      card.classList.remove("collapsed");
+      const tb = document.getElementById("filters-toggle");
+      if (tb) tb.setAttribute("aria-expanded", "true");
+    }
+  };
+  window.addEventListener("resize", window._mbFiltersResize);
 
   renderList();
   const pre = window.MB_PRESELECT ? parseInt(window.MB_PRESELECT, 10) : null;

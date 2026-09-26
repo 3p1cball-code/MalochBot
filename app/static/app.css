@@ -75,6 +75,7 @@ header.nav .brand {
   font-weight: 700; font-size: 13px; letter-spacing: .16em; text-transform: uppercase;
   color: var(--ink-strong); margin-right: 24px; display: flex; align-items: center; gap: 10px;
 }
+header.nav .navlinks { display: contents; }
 header.nav a.navlink {
   color: var(--muted); padding: 8px 2px; margin: 0 15px;
   border-bottom: 2px solid transparent; font-size: 15px; font-weight: 500;
@@ -98,6 +99,28 @@ header.nav button.navlink.active { color: var(--ink-strong); font-weight: 700; }
 .theme-btn svg { display: block; }
 [data-theme="hell"] .theme-btn .i-sun { display: none; }
 [data-theme="dunkel"] .theme-btn .i-moon { display: none; }
+
+/* Header mobil: Zeile 1 Brand + Sprache/Theme, Zeile 2 scrollbare Tabs */
+@media (max-width: 760px) {
+  header.nav .inner { flex-wrap: wrap; padding: 0 14px; min-height: 0; gap: 0; }
+  header.nav .brand { margin-right: 0; font-size: 12px; height: 48px; letter-spacing: .12em;
+    flex: none; white-space: nowrap; }
+  header.nav .brand .mark { width: 20px; height: 20px; }
+  header.nav .spacer { display: none; }
+  header.nav .lang-switch { margin-left: auto; display: flex; align-items: center; }
+  header.nav button.navlink { padding: 0 7px; height: 48px; font-size: 11.5px; }
+  header.nav .theme-btn { margin-left: 8px; }
+  header.nav .navlinks {
+    order: 10; width: 100%; display: flex; flex-wrap: nowrap;
+    overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    border-top: 1px solid var(--line);
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent);
+  }
+  header.nav .navlinks::-webkit-scrollbar { display: none; }
+  header.nav a.navlink { margin: 0; padding: 0 13px; height: 44px; display: inline-flex; align-items: center;
+    font-size: 14px; white-space: nowrap; flex: none; border-bottom-width: 3px; }
+}
 
 /* Layout */
 .container { max-width: 1240px; margin: 30px auto; padding: 0 22px; }
@@ -420,3 +443,185 @@ header.nav .brand img.mark { display: block; width: 22px; height: 22px; border: 
 .runbar.info { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 40%, transparent); color: color-mix(in srgb, var(--accent) 70%, var(--ink-strong)); }
 .runbar.success { background: color-mix(in srgb, var(--ok) 12%, transparent); border-color: color-mix(in srgb, var(--ok) 40%, transparent); color: var(--ok); }
 .runbar.error { background: color-mix(in srgb, var(--err) 12%, transparent); border-color: color-mix(in srgb, var(--err) 40%, transparent); color: var(--err); }
+
+/* ================================================================
+   MOBIL (<= 760px)
+   Auf kleinen Bildschirmen wird die Anordnung bewusst umgebaut:
+   Karten statt breiter Tabellen, Filter einklappbar, Detail als
+   Vollbild-Sheet. Desktop bleibt unberührt.
+   ================================================================ */
+
+.only-mobile { display: none !important; }
+.detail-close { display: none; }
+.filters-toggle { display: none; }
+
+@media (max-width: 760px) {
+  .only-desktop { display: none !important; }
+  .only-mobile { display: revert !important; }
+
+  body { font-size: 15px; }
+  .container, .container.wide { margin: 16px auto; padding: 0 14px; }
+  h1 { font-size: 22px; }
+  h2 { margin-top: 22px; }
+
+  /* Kopfbereich der Jobseite */
+  .page-head { flex-direction: column; align-items: stretch; gap: 12px; }
+  .head-actions { flex-wrap: wrap; gap: 8px; }
+  #search-extra { flex: 1 1 100%; width: 100% !important; min-width: 0; }
+  .head-actions .btn { flex: 1 1 0; min-width: 0; justify-content: center; text-align: center;
+    white-space: normal; line-height: 1.2; padding: 9px 10px; }
+
+  /* Filter einklappbar */
+  .filters-toggle { display: flex; align-items: center; gap: 8px; width: 100%;
+    background: transparent; border: 0; padding: 2px 0; cursor: pointer; font: inherit;
+    font-weight: 700; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-strong); }
+  .filters-toggle .ft-count { color: var(--accent); font-weight: 700; letter-spacing: .02em;
+    text-transform: none; font-size: 12px; }
+  .filters-toggle .ft-chevron { margin-left: auto; color: var(--muted); transition: transform .18s ease; }
+  .filters-toggle { margin-bottom: 12px; }
+  .filters-card:not(.collapsed) .filters-toggle .ft-chevron { transform: rotate(180deg); }
+  .filters-card.collapsed .filters-body { display: none; }
+  .filters-card { padding: 14px 15px; }
+
+  .runbar { top: 92px; margin-bottom: 12px; }
+  /* Bei offenem Detail-Sheet: Laufstatus als schwebende Leiste unten statt verdeckt. */
+  body.detail-open .runbar {
+    position: fixed; left: 12px; right: 12px; top: auto;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    margin: 0; z-index: 80; box-shadow: 0 6px 24px rgba(0, 0, 0, .35);
+  }
+
+  .filters-card .filters { flex-direction: column; align-items: stretch; gap: 13px; }
+  .filters-card .filters .field { width: 100% !important; min-width: 0 !important; }
+  .filters-card .filters .field > input,
+  .filters-card .filters .field > select { width: 100%; }
+  .status-checks { gap: 8px 16px; }
+  .status-checks .chk { font-size: 13px; padding: 2px 0; }
+  .status-checks input { width: 20px; height: 20px; }
+
+  /* Jobliste: Tabelle -> Karten */
+  .jobs-layout { display: block; }
+  .jobs-pane { background: transparent; border: 0; overflow: visible; }
+  .jobs-scroll { max-height: none; overflow: visible; }
+  table.jobs-table { display: block; width: 100%; min-width: 0;
+    border-collapse: separate; border-spacing: 0 10px; }
+  table.jobs-table thead { display: none; }
+  table.jobs-table tbody { display: block; }
+  table.jobs-table tbody tr {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "co st" "ti st" "ort fit" "date fit";
+    gap: 3px 12px; align-items: center;
+    background: var(--panel); border: 1px solid var(--line); padding: 12px 14px;
+    transition: background .14s, border-color .14s;
+  }
+  table.jobs-table tbody tr:active { background: var(--panel-2); }
+  table.jobs-table tbody tr.active { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+  table.jobs-table tbody tr.hl-changed { background: color-mix(in srgb, var(--ok) 12%, transparent); }
+  table.jobs-table tbody tr.hl-locked { background: color-mix(in srgb, var(--err) 13%, transparent); }
+  table.jobs-table tbody tr.empty { display: block; border-style: dashed; }
+  table.jobs-table tbody tr.empty td { display: block; padding: 22px 6px; text-align: center; }
+  table.jobs-table td { display: block; padding: 0; border: 0; white-space: normal;
+    overflow: visible; text-overflow: clip; }
+  table.jobs-table td.co { grid-area: co; font-size: 12.5px; font-weight: 700; color: var(--muted); }
+  table.jobs-table td.ti { grid-area: ti; font-size: 15px; font-weight: 600; line-height: 1.3;
+    color: var(--ink-strong); }
+  table.jobs-table td.st { grid-area: st; align-self: start; }
+  table.jobs-table td.st .badge { min-width: 0; }
+  table.jobs-table td.ort { grid-area: ort; font-size: 12.5px; color: var(--muted); }
+  table.jobs-table td.fit { grid-area: fit; text-align: right; align-self: end;
+    font-size: 22px; font-weight: 800; color: var(--ink-strong); font-variant-numeric: tabular-nums; }
+  table.jobs-table td.fit::before { content: attr(data-lbl); display: block; font-size: 9px;
+    letter-spacing: .1em; color: var(--faint); font-weight: 700; text-transform: uppercase; }
+  table.jobs-table td.date { grid-area: date; font-size: 11.5px; color: var(--faint); }
+  table.jobs-table td.date::before { content: attr(data-lbl) " "; color: var(--faint); }
+
+  /* Detail als Vollbild-Sheet */
+  .job-detail {
+    position: fixed; inset: 0; z-index: 60; margin: 0; border: 0;
+    max-height: none; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    padding: 0 16px 44px; background: var(--panel);
+    transform: translateY(100%); visibility: hidden;
+    transition: transform .22s ease, visibility .22s ease;
+    padding-bottom: calc(44px + env(safe-area-inset-bottom, 0px));
+  }
+  .job-detail.open { transform: translateY(0); visibility: visible; }
+  body.detail-open { overflow: hidden; }
+  .job-detail h2 { font-size: 19px; padding-right: 8px; }
+  .detail-close { display: inline-flex; align-items: center; gap: 5px;
+    position: sticky; top: 0; z-index: 3; margin: 0 -16px 6px; padding: 12px 16px 10px;
+    font: inherit; font-size: 14px; font-weight: 700; color: var(--ink-strong);
+    background: color-mix(in srgb, var(--panel) 94%, transparent);
+    backdrop-filter: blur(6px); border: 0; border-bottom: 1px solid var(--line);
+    border-radius: 0; cursor: pointer; width: calc(100% + 32px); text-align: left; }
+  .detail-close:active { color: var(--accent); }
+  .job-detail .job-actions { grid-template-columns: 1fr; }
+  .job-detail .job-actions .col-a,
+  .job-detail .job-actions .col-b,
+  .job-detail .job-actions .col-c,
+  .job-detail .job-actions .span-all,
+  .job-detail .job-actions .span-ab { grid-column: auto; }
+  .job-detail .job-actions .btn,
+  .job-detail .job-actions .btn-block { width: 100%; }
+  .timeline .tl-date { display: block; min-width: 0; }
+
+  .job-detail .filters { flex-wrap: wrap; }
+
+  /* Unterlagen: Tabelle -> Karten, Aktionen sichtbar */
+  .upload-form { flex-direction: column; align-items: stretch; gap: 13px; }
+  .upload-form .field { width: 100% !important; min-width: 0 !important; }
+  .upload-form input, .upload-form select { width: 100%; max-width: 100%; }
+  .upload-form .btn { width: 100%; justify-content: center; }
+
+  .docs-table { table-layout: auto; }
+  .docs-table colgroup { display: none; }
+  .table-wrap { overflow: visible; border: 0; }
+  table.table.docs-table { display: block; width: 100%; min-width: 0; background: transparent;
+    border-collapse: separate; }
+  table.docs-table > tbody { display: block; }
+  table.docs-table > tbody > tr { display: block; }
+  table.docs-table > tbody > tr:first-child { display: none !important; }
+  table.docs-table > tbody > tr:not(.eval-row) {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "file kind" "usage usage" "actions actions";
+    gap: 10px 12px; align-items: center; background: var(--panel);
+    border: 1px solid var(--line); padding: 14px; margin-top: 12px;
+  }
+  table.docs-table > tbody > tr:not(.eval-row):has(+ tr.eval-row) { border-bottom: 0; }
+  table.docs-table > tbody > tr.eval-row {
+    background: var(--panel); border: 1px solid var(--line); border-top: 0;
+    padding: 0 14px 12px; margin-top: -1px;
+  }
+  table.docs-table td { display: block; padding: 0; border: 0; white-space: normal;
+    overflow: visible; text-overflow: clip; vertical-align: top; }
+  table.docs-table td:nth-child(1) { grid-area: file; }
+  table.docs-table td:nth-child(2) { grid-area: kind; }
+  table.docs-table td:nth-child(3) { grid-area: usage; }
+  table.docs-table td.doc-actions { grid-area: actions; display: flex; flex-wrap: wrap;
+    gap: 6px; justify-content: flex-start; }
+  table.docs-table td.doc-actions .inline-form { display: flex; flex: 1 1 auto; }
+  table.docs-table .doc-act { width: auto; flex: 1 1 40%; }
+  table.docs-table td:nth-child(2) select { width: 100%; }
+  table.docs-table .use-toggle { width: 100%; justify-content: flex-start; }
+  table.docs-table .eval-box { margin-top: 6px; }
+
+  /* Log: Läufe als kompakte Karten */
+  table.log-table { display: block; width: 100%; min-width: 0; background: transparent;
+    border-collapse: separate; }
+  table.log-table > tbody { display: block; }
+  table.log-table > tbody > tr { display: block; }
+  table.log-table > tbody > tr:first-child { display: none !important; }
+  table.log-table > tbody > tr:not(:first-child) {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "id status" "source status" "model status" "date date" "action action";
+    gap: 3px 12px; align-items: center; background: var(--panel);
+    border: 1px solid var(--line); padding: 12px 14px; margin-top: 10px;
+  }
+  table.log-table td { display: block; padding: 0; border: 0; }
+  table.log-table td:nth-child(1) { grid-area: id; font-weight: 700; color: var(--ink-strong); }
+  table.log-table td:nth-child(2) { grid-area: source; font-weight: 600; }
+  table.log-table td:nth-child(3) { grid-area: model; }
+  table.log-table td:nth-child(4) { grid-area: status; text-align: right; align-self: start; color: var(--muted); }
+  table.log-table td:nth-child(5) { grid-area: date; }
+  table.log-table td:nth-child(6) { grid-area: action; }
+  table.log-table td:nth-child(6) .btn { width: 100%; justify-content: center; margin-top: 4px; }
+}

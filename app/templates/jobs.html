@@ -4,7 +4,10 @@
 <div class="page-head">
   <div>
     <h1>{{ t('jobs.title') }} <span id="job-count" class="muted small"></span></h1>
-    <p class="subtitle" style="margin-bottom:0">{{ t('jobs.subtitle') }}</p>
+    <p class="subtitle" style="margin-bottom:0">
+      <span class="only-desktop">{{ t('jobs.subtitle') }}</span>
+      <span class="only-mobile">{{ t('jobs.subtitle_mobile') }}</span>
+    </p>
   </div>
   <div class="head-actions">
     <input id="search-extra" placeholder="{{ t('jobs.extra_ph') }}">
@@ -19,7 +22,13 @@
 </div>
 {% endif %}
 
-<div class="card tight" style="margin:16px 0">
+<div class="card tight filters-card" id="filters-card" style="margin:16px 0">
+  <button type="button" class="filters-toggle" id="filters-toggle" aria-expanded="true" aria-controls="filters-body" onclick="mbToggleFilters()">
+    <span>{{ t('common.filter') }}</span>
+    <span class="ft-count" id="filters-count"></span>
+    <svg class="ft-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+  </button>
+  <div class="filters-body" id="filters-body">
   <div class="filters" style="margin-bottom:0">
     <div class="field" style="flex:1;min-width:200px"><label>{{ t('common.search') }}</label>
       <input id="f-q" placeholder="{{ t('common.company') }}, {{ t('common.position') }}, {{ t('common.location') }}"></div>
@@ -45,6 +54,7 @@
       <option value="status">{{ t('common.status') }}</option>
     </select></div>
     <button class="btn" type="button" onclick="mbResetFilters()">{{ t('common.reset') }}</button>
+  </div>
   </div>
 </div>
 
@@ -116,7 +126,9 @@ window.MB_I18N = {
   dl_cover: {{ t('detail.dl_cover')|tojson }}, regen: {{ t('detail.regen')|tojson }},
   feedback_ph: {{ t('detail.feedback_ph')|tojson }},
   hl_changed: {{ t('detail.hl_changed')|tojson }}, hl_locked: {{ t('detail.hl_locked')|tojson }},
-  save: {{ t('common.save')|tojson }}, none: {{ t('jobs.none')|tojson }}
+  save: {{ t('common.save')|tojson }}, none: {{ t('jobs.none')|tojson }},
+  back: {{ t('detail.back')|tojson }}, close: {{ t('common.close')|tojson }},
+  filter_active: {{ t('common.filter_active')|tojson }}
 };
 </script>
 {% endblock %}

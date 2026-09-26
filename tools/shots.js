@@ -36,6 +36,15 @@ const shots = [
   { name: "12-about-light", p: "/about", theme: "hell", full: true },
   { name: "13-log-dark", p: "/log", theme: "dunkel" },
   { name: "14-jobs-dark-actions", p: "/", theme: "dunkel", detail: true, scrollDetail: true, full: true },
+  // Mobil (390x844, Touch) – eigene Anordnung: Karten, Filter einklappbar, Detail-Sheet.
+  { name: "15-jobs-mobile-dark", p: "/", theme: "dunkel", w: 390, h: 844, mobile: true },
+  { name: "16-jobs-mobile-detail", p: "/", theme: "dunkel", w: 390, h: 844, mobile: true, detail: true },
+  { name: "17-jobs-mobile-filters", p: "/", theme: "dunkel", w: 390, h: 844, mobile: true, openFilters: true, full: true },
+  { name: "18-jobs-mobile-light", p: "/", theme: "hell", w: 390, h: 844, mobile: true },
+  { name: "19-stats-mobile-dark", p: "/stats", theme: "dunkel", w: 390, h: 844, mobile: true, full: true },
+  { name: "20-documents-mobile-dark", p: "/documents", theme: "dunkel", w: 390, h: 844, mobile: true, full: true },
+  { name: "21-log-mobile-dark", p: "/log", theme: "dunkel", w: 390, h: 844, mobile: true },
+  { name: "22-settings-mobile-light", p: "/settings", theme: "hell", w: 390, h: 844, mobile: true, full: true },
 ];
 
 (async () => {
@@ -45,7 +54,13 @@ const shots = [
     args: ["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"],
   });
   for (const s of shots) {
-    const ctx = await browser.newContext({ viewport: { width: W, height: H } });
+    const vw = s.w || W, vh = s.h || H;
+    const ctx = await browser.newContext({
+      viewport: { width: vw, height: vh },
+      isMobile: !!s.mobile,
+      hasTouch: !!s.mobile,
+      deviceScaleFactor: s.mobile ? 2 : 1,
+    });
     await ctx.addInitScript((t) => { try { localStorage.setItem("mb-theme", t); } catch (e) {} }, s.theme);
     const page = await ctx.newPage();
     await page.goto(BASE + s.p, { waitUntil: "networkidle", timeout: 30000 });
@@ -68,6 +83,10 @@ const shots = [
         document.querySelectorAll(".f-status").forEach((c) => c.dispatchEvent(new Event("change", { bubbles: true })));
       }, s.filter);
       await page.waitForTimeout(400);
+    }
+    if (s.openFilters) {
+      await page.evaluate(() => { const d = document.getElementById("filters-card"); if (d) d.classList.remove("collapsed"); });
+      await page.waitForTimeout(300);
     }
     await page.addStyleTag({ content: BLUR });
     if (s.scrollDetail) {

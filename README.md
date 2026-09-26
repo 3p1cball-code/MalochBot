@@ -63,6 +63,8 @@ decisions that actually matter: which job, which cover letter, which interview.
 
 More views (light/dark, filtered) live in [`docs/screenshots/`](docs/screenshots/).
 
+**Mobile** — on small screens the layout is rebuilt: the job list becomes tappable cards, the filters collapse behind a toggle, the detail opens as a full-screen sheet (with back/gesture support), and documents/log render as cards instead of horizontally scrolling tables. `tools/shots.js` also produces mobile screenshots (`*-mobile-*`).
+
 ## Installation
 
 ### Linux / macOS
