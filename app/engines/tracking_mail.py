@@ -27,19 +27,31 @@ passende Mail NICHT erwaehnen.
 
 Gib pro relevanter Mail zurueck:
 - mail_id  (id aus "mails")
-- job_id   (id des zugeordneten Jobs oder null)
+- job_id   (id des zugeordneten bekannten Jobs oder null)
 - phase   eine von: "Beworben", "Eingangsbestaetigung", "Interview-Prozess",
           "Absage", "Warte auf Rueckmeldung" - ODER "keine", wenn die Mail zwar
           zum Job gehoert, den Status aber nicht aendert.
 - antwort_am  YYYY-MM-DD oder ""
 - status_text  kurzer deutscher Satz
 - confidence  hoch/mittel/niedrig
+- company, title  NUR setzen, wenn die Mail eine EIGENE Bewerbung betrifft UND
+          job_id null ist (kein bekannter Job passt): Firma und Rollenbezeichnung
+          best-effort aus Betreff/Body. Sonst leere Strings.
 
 Regeln:
 - "out" (gesendete Bewerbung) belegt: beworben wurde => "Beworben".
 - Jobboersen-Benachrichtigung (LinkedIn/XING) "Bewerbung wurde gesendet" => "Beworben".
 - Firmenbezug steht oft erst im Body/Signatur (hint nutzen).
 - Newsletter/Job-Alerts/privates => job_id null und phase "keine".
+- Reine Job-Empfehlungen sind KEINE Bewerbungsmails (auch wenn eine Firma genannt
+  wird): "Jobs fuer dich", "Neue Jobs entsprechen Ihren Einstellungen", "Jobangebot
+  ansehen", "aehnliche Jobs", "Top-Empfehlung". Diese: phase "keine", company/title
+  leer.
+- EIGENE Bewerbungsmails erkennst du z. B. an "vielen Dank fuer Ihre Bewerbung",
+  "Ihre Bewerbung", "wir haben Ihre Bewerbung geprueft", "leider",
+  "nicht beruecksichtigen", "nicht in der engeren Auswahl", "Einladung zum Gespraech",
+  "Application Update". Wenn dazu kein bekannter Job passt (job_id null), fuelle
+  company und title, damit die Anwendung einen neuen Job anlegen kann.
 - ABSAGE hat Vorrang und wird am haeufigsten uebersehen: Pruefe bei JEDER Mail,
   ob sie eine Absage ist. Signale: "leider", "andere Kandidaten", "Stelle besetzt",
   "nicht weiter", "nicht beruecksichtigen", "entschieden uns fuer", "Thank you for
@@ -50,14 +62,20 @@ Regeln:
   (nicht nur die erste). Die Anwendung nimmt spaeter automatisch die neueste.
 
 Antworte AUSSCHLIESSLICH mit JSON:
-{"mails":[{"mail_id":1,"job_id":34,"phase":"Beworben","antwort_am":"2026-09-25","status_text":"...","confidence":"hoch"}]}
+{"mails":[{"mail_id":1,"job_id":34,"phase":"Beworben","antwort_am":"2026-09-25","status_text":"...","confidence":"hoch","company":"","title":""}]}
 """
 
 
 def classify(mails, jobs, model: str = "", batch: int = 40, run_id=None):
-    """Bewertet alle Mails in Batches. Gibt die rohe 'mails'-Liste des Modells zurueck."""
+    """Bewertet alle Mails in Batches.
+
+    Gibt (items, n_batches, ok_batches) zurueck: die rohe 'mails'-Liste des Modells
+    sowie die Zahl der Batches insgesamt und derer mit auswertbarer Antwort. So kann
+    der Aufrufer einen echten Parse-Fehler von 'nichts zu tun' unterscheiden.
+    """
     out_items = []
     batches = [mails[i:i + batch] for i in range(0, len(mails), batch)]
+    ok_batches = 0
     for idx, batch_mails in enumerate(batches, 1):
         context = {"jobs": jobs, "mails": batch_mails}
         path = config.DATA_DIR / ("mc_context_%d.json" % idx)
@@ -81,8 +99,9 @@ def classify(mails, jobs, model: str = "", batch: int = 40, run_id=None):
             else:
                 print("Batch %d: unerwartetes Format." % idx, flush=True)
             continue
+        ok_batches += 1
         out_items.extend(x for x in items if isinstance(x, dict))
-    return out_items
+    return out_items, len(batches), ok_batches
 
 
 def propose(out_items, mail_date_by_id: dict):
@@ -110,3 +129,25 @@ def propose(out_items, mail_date_by_id: dict):
             cand[jid] = {"phase": phase, "date": date,
                          "status_text": item.get("status_text", ""), "mail_id": mid}
     return assoc, cand
+
+
+def extract_new_jobs(out_items):
+    """Bewerbungsmails ohne bekannten Job -> Vorschlag fuer einen neuen Job.
+
+    Nur wenn das Modell company+title gefuellt hat UND eine echte Phase (nicht
+    "keine"/"Ohne Rueckmeldung") vorliegt. Reine Job-Empfehlungen fallen raus,
+    weil sie phase "keine" und leere company/title haben.
+    """
+    creates = []
+    for item in out_items:
+        if not isinstance(item, dict) or isinstance(item.get("job_id"), int):
+            continue
+        company = (item.get("company") or "").strip()
+        title = (item.get("title") or "").strip()
+        phase = t._clean_phase(item.get("phase"))
+        if not company or not title or phase == "Ohne Rueckmeldung":
+            continue
+        creates.append({"mail_id": item.get("mail_id"), "company": company, "title": title,
+                        "phase": phase, "date": t._clean_date(item.get("antwort_am")),
+                        "status_text": item.get("status_text", "")})
+    return creates

@@ -295,7 +295,7 @@ def recheck_job(job_id: int, run_id: int, model: str = "") -> dict:
                       "from": frm, "to": "", "subject": r["subject"] or "",
                       "body": body, "hint": _hint(frm, body)})
     from . import tracking_mail as tm
-    items = tm.classify(mails, [job], model=model, run_id=run_id)
+    items, _, _ = tm.classify(mails, [job], model=model, run_id=run_id)
     assoc, cand = tm.propose(items, {m["id"]: m["date"] for m in mails})
     merged = {jid: {"id": jid, "phase": c["phase"], "antwort_am": c["date"],
                     "status_text": c["status_text"], "mail_ids": []} for jid, c in cand.items()}
@@ -329,31 +329,51 @@ def run_tracking(run_id: int, model: str = "") -> dict:
 
     from . import tracking_mail as tm
     logbus.log(run_id, "info", "Auswertung: mail-zentrisch.")
-    items = tm.classify(mails, jobs, model=model, run_id=run_id)
+    items, n_batches, ok_batches = tm.classify(mails, jobs, model=model, run_id=run_id)
+    if n_batches and ok_batches == 0:
+        raise RuntimeError("Keine auswertbare JSON-Antwort des Modells "
+                           "(alle %d Mail-Batches fehlgeschlagen)." % n_batches)
+    if ok_batches < n_batches:
+        logbus.log(run_id, "warn", "%d von %d Mail-Batches ohne auswertbare Antwort - "
+                   "Ergebnis unvollstaendig." % (n_batches - ok_batches, n_batches))
     mail_date = {m["id"]: m.get("date", "") for m in mails}
     assoc, cand = tm.propose(items, mail_date)
     merged = {}
-    job_mails = {}
     for jid, c in cand.items():
         merged[jid] = {"id": jid, "phase": c["phase"], "antwort_am": c["date"],
                        "status_text": c["status_text"], "mail_ids": []}
+
+    # Bewerbungsmails ohne bekannten Job (z. B. Absage ueber ein Portal) -> neuer Job.
+    for c in tm.extract_new_jobs(items):
+        jid, created = db.upsert_job({"company": c["company"], "title": c["title"],
+                                      "source": "mail", "status": "gefunden"})
+        assoc[c["mail_id"]] = jid
+        if created:
+            logbus.log(run_id, "info", "Neuer Job aus Mail: %s – %s (%s)"
+                       % (c["company"], c["title"], c["phase"]))
+        prev = merged.get(jid)
+        if prev is None or (c["date"] or "") >= (prev.get("antwort_am") or ""):
+            merged[jid] = {"id": jid, "phase": c["phase"], "antwort_am": c["date"],
+                           "status_text": c["status_text"], "mail_ids": []}
+
+    job_mails = {}
     for mid, jid in assoc.items():
         job_mails.setdefault(jid, set()).add(mid)
-    if not merged:
-        raise RuntimeError("Keine auswertbare JSON-Antwort vom Modell erhalten.")
 
-    linked = 0
-    for jid, mids in job_mails.items():
-        for mid in mids:
-            eid = mail_rows.get(mid)
-            if eid:
-                db.execute("UPDATE emails SET job_id=? WHERE id=?", (jid, eid))
-                linked += 1
-    logbus.log(run_id, "info", "%d Mail-Job-Zuordnungen (LLM)." % linked)
+    if merged:
+        linked = 0
+        for jid, mids in job_mails.items():
+            for mid in mids:
+                eid = mail_rows.get(mid)
+                if eid:
+                    db.execute("UPDATE emails SET job_id=? WHERE id=?", (jid, eid))
+                    linked += 1
+        logbus.log(run_id, "info", "%d Mail-Job-Zuordnungen (LLM)." % linked)
+        db.execute("UPDATE jobs SET hl=''")
+    else:
+        logbus.log(run_id, "info", "Keine statusrelevante Mail - nichts zu aktualisieren.")
 
-    db.execute("UPDATE jobs SET hl=''")
     updated = _apply_merged(merged, run_id)
-
     db.set_setting("last_scan", datetime.now().strftime("%Y-%m-%d"))
     logbus.log(run_id, "info", "%d Bewerbungen aktualisiert." % updated)
     return {"mails": len(mails), "aktualisiert": updated}
