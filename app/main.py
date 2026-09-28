@@ -152,17 +152,25 @@ def _counts():
 
 
 def _last_update_summary():
-    """Kompakte Zusammenfassung des letzten Aktualisierungslaufs (fuer die Uebersicht).
+    """Kompakte Zusammenfassung des letzten Aktualisierungs-/Suchlaufs (fuer die Uebersicht).
 
     Basis sind die tatsaechlichen Statuswechsel (events), nicht die Log-Zeilen:
     _apply_merged schreibt 'Status: Job #..' auch dann ins Log, wenn die Phase
     unveraendert ist. Reale Aenderungen erzeugen dagegen einen Event.
     """
-    run = db.one("SELECT id, started_at, finished_at FROM runs "
-                 "WHERE kind IN ('tracking','recheck') AND status='ok' "
+    run = db.one("SELECT id, kind, started_at, finished_at, summary FROM runs "
+                 "WHERE kind IN ('tracking','recheck','suche') AND status='ok' "
                  "ORDER BY id DESC LIMIT 1")
     if not run:
         return None
+    when = (run["finished_at"] or "").replace("T", " ")[:16]
+    try:
+        summary = json.loads(run["summary"] or "{}")
+    except Exception:
+        summary = {}
+    if run["kind"] == "suche":
+        return {"when": when, "kind": "suche", "new_jobs": int(summary.get("neu") or 0),
+                "scanned": int(summary.get("gefunden") or 0), "changes": []}
     lang = db.get_setting("language", "de")
     labels = config.status_labels(lang)
     jobs = {j["id"]: j["company"] for j in db.query("SELECT id, company FROM jobs")}
@@ -176,11 +184,7 @@ def _last_update_summary():
         status = config.PHASE_TO_STATUS.get(phase, "")
         changes.append({"job_id": row["job_id"], "company": jobs.get(row["job_id"], "#%d" % row["job_id"]),
                         "status": status, "label": labels.get(status, phase)})
-    return {
-        "when": (run["finished_at"] or "").replace("T", " ")[:16],
-        "count": len(changes),
-        "changes": changes,
-    }
+    return {"when": when, "kind": run["kind"], "new_jobs": 0, "changes": changes}
 
 
 @app.get("/jobs")

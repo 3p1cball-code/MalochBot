@@ -20,7 +20,13 @@
 <div class="card tight last-update" style="margin:0 0 16px;padding:9px 13px">
   <span class="lu-title">{{ t('jobs.last_update') }}:</span>
   <span class="lu-when">{{ last_update.when }}</span>
-  {% if last_update.changes %}
+  {% if last_update.kind == 'suche' %}
+    {% if last_update.new_jobs %}
+    <span class="lu-list"><span class="lu-item"><span class="lu-dot" style="background:var(--ok)"></span>{{ last_update.new_jobs }} {{ t('jobs.new_job_found' if last_update.new_jobs == 1 else 'jobs.new_jobs_found') }}</span></span>
+    {% else %}
+    <span class="lu-empty">{{ t('jobs.no_new_jobs') }}</span>
+    {% endif %}
+  {% elif last_update.changes %}
   <span class="lu-list">
     {% for c in last_update.changes %}<span class="lu-item"><span class="lu-dot" style="background:{{ status_colors.get(c.status, '#94a3b8') }}"></span>{{ c.company }} → {{ c.label }}</span>{% endfor %}
   </span>
