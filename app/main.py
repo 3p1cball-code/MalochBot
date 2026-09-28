@@ -113,10 +113,14 @@ def home(request: Request):
         "FROM jobs j LEFT JOIN applications a ON a.job_id = j.id "
         "ORDER BY j.found_at DESC, j.id DESC")
     emails = db.query(
-        "SELECT job_id, date, from_addr, subject FROM emails WHERE job_id IS NOT NULL "
+        "SELECT job_id, date, from_addr, subject, links FROM emails WHERE job_id IS NOT NULL "
         "ORDER BY date DESC")
     by_job = {}
     for mail in emails:
+        try:
+            mail["links"] = json.loads(mail.get("links") or "[]")
+        except Exception:
+            mail["links"] = []
         by_job.setdefault(mail["job_id"], []).append(mail)
     events = db.query("SELECT job_id, ts, kind, text FROM events ORDER BY ts")
     events_by_job = {}
@@ -134,6 +138,7 @@ def home(request: Request):
         request, jobs_json=json.dumps(rows, ensure_ascii=False),
         sources=sources, opencode_ok=opencode_adapter.available(),
         counts=_counts(),
+        last_update=_last_update_summary(),
         fit_threshold=int(db.get_setting("fit_threshold", "0") or 0)))
 
 
@@ -144,6 +149,38 @@ def _counts():
         counts[row["status"]] = row["n"]
     counts["gesamt"] = sum(counts.values())
     return counts
+
+
+def _last_update_summary():
+    """Kompakte Zusammenfassung des letzten Aktualisierungslaufs (fuer die Uebersicht).
+
+    Basis sind die tatsaechlichen Statuswechsel (events), nicht die Log-Zeilen:
+    _apply_merged schreibt 'Status: Job #..' auch dann ins Log, wenn die Phase
+    unveraendert ist. Reale Aenderungen erzeugen dagegen einen Event.
+    """
+    run = db.one("SELECT id, started_at, finished_at FROM runs "
+                 "WHERE kind IN ('tracking','recheck') AND status='ok' "
+                 "ORDER BY id DESC LIMIT 1")
+    if not run:
+        return None
+    lang = db.get_setting("language", "de")
+    labels = config.status_labels(lang)
+    jobs = {j["id"]: j["company"] for j in db.query("SELECT id, company FROM jobs")}
+    changes = []
+    rows = db.query(
+        "SELECT job_id, text FROM events WHERE kind='status' "
+        "AND text LIKE 'Status (Mail):%' AND ts >= ? AND ts <= ? ORDER BY ts, id",
+        (run["started_at"] or "", run["finished_at"] or ""))
+    for row in rows:
+        phase = (row["text"] or "").split(":", 1)[-1].strip().split(" – ", 1)[0].strip()
+        status = config.PHASE_TO_STATUS.get(phase, "")
+        changes.append({"job_id": row["job_id"], "company": jobs.get(row["job_id"], "#%d" % row["job_id"]),
+                        "status": status, "label": labels.get(status, phase)})
+    return {
+        "when": (run["finished_at"] or "").replace("T", " ")[:16],
+        "count": len(changes),
+        "changes": changes,
+    }
 
 
 @app.get("/jobs")
@@ -498,12 +535,15 @@ def settings(request: Request, saved: str = ""):
         provider = name.split("/", 1)[0]
         models_by_provider.setdefault(provider, []).append(name)
     documents = db.query("SELECT id, name, kind FROM documents ORDER BY kind, name")
+    accounts = db.list_mail_accounts()
+    mail_has_pw = {a["id"]: bool(secrets.store.get("mail_password_%s" % a["id"], ""))
+                   for a in accounts}
     from .engines.sources import jobspy_source
     return tr("settings.html", _ctx(
         request, values=values, mail_providers=providers.PROVIDERS,
+        mail_accounts=accounts, mail_has_pw=mail_has_pw,
         models=models, models_by_provider=models_by_provider,
         secret_backend=secrets.store.backend(),
-        has_mail_password=bool(secrets.store.get("mail_password", "")),
         jobspy_ok=jobspy_source.available(),
         saved=saved))
 
@@ -512,8 +552,7 @@ def settings(request: Request, saved: str = ""):
 async def settings_save(request: Request):
     form = await request.form()
     for key in ("model", "profile", "preferences", "search_extra", "fit_threshold",
-                "home_city", "mail_provider", "mail_email", "mail_host",
-                "mail_port", "mail_folders", "mail_since",
+                "home_city", "mail_since",
                 "search_terms", "source_results", "source_max_age_days",
                 "source_radius_km", "jobspy_sites", "jobspy_country",
                 "jobspy_hours_old", "jobspy_location"):
@@ -522,13 +561,76 @@ async def settings_save(request: Request):
     if "sources_present" in form:
         selected = [str(x) for x in form.getlist("search_sources") if str(x).strip()]
         db.set_setting("search_sources", ",".join(selected))
-    password = form.get("mail_password", "")
-    if password:
-        secrets.store.set("mail_password", password)
-    if form.get("clear_password"):
-        secrets.store.delete("mail_password")
+
+    # Mehrere Mailkonten
+    ids = form.getlist("mail_id")
+    provs = form.getlist("mail_provider")
+    mails = form.getlist("mail_email")
+    pws = form.getlist("mail_password")
+    hosts = form.getlist("mail_host")
+    ports = form.getlist("mail_port")
+    folders = form.getlist("mail_folders")
+    labels = form.getlist("mail_label")
+
+    def _at(lst, i):
+        return lst[i] if i < len(lst) else ""
+
+    for i in range(len(provs)):
+        provider = str(_at(provs, i)).strip()
+        email = str(_at(mails, i)).strip()
+        if not provider and not email:
+            continue
+        host = str(_at(hosts, i)).strip()
+        port = str(_at(ports, i)).strip() or "993"
+        folder = str(_at(folders, i)).strip() or "INBOX"
+        label = str(_at(labels, i)).strip()
+        password = str(_at(pws, i))
+        acc_id = str(_at(ids, i)).strip()
+        if acc_id.isdigit():
+            db.update_mail_account(int(acc_id), provider, email, host, port, folder, label)
+            if password:
+                secrets.store.set("mail_password_%s" % acc_id, password)
+        else:
+            new_id = db.add_mail_account(provider, email, host, port, folder, label)
+            if password:
+                secrets.store.set("mail_password_%s" % new_id, password)
+    for del_id in form.getlist("mail_delete"):
+        if str(del_id).isdigit():
+            db.delete_mail_account(int(del_id))
+            secrets.store.delete("mail_password_%s" % str(del_id))
+
     db.set_setting("setup_done", "1")
     return RedirectResponse("/settings?saved=1", status_code=303)
+
+
+@app.post("/settings/mail/delete")
+async def settings_mail_delete(request: Request):
+    form = await request.form()
+    acc_id = str(form.get("id", "")).strip()
+    if acc_id.isdigit():
+        db.delete_mail_account(int(acc_id))
+        secrets.store.delete("mail_password_%s" % acc_id)
+    return JSONResponse({"deleted": acc_id})
+
+
+@app.post("/settings/mail/test")
+async def settings_mail_test(request: Request):
+    form = await request.form()
+    acc_id = str(form.get("mail_id", "")).strip()
+    account = {
+        "id": int(acc_id) if acc_id.isdigit() else "",
+        "provider": str(form.get("mail_provider", "")),
+        "email": str(form.get("mail_email", "")),
+        "host": str(form.get("mail_host", "")),
+        "port": str(form.get("mail_port", "993")),
+    }
+    password = str(form.get("mail_password", ""))
+    if password:
+        account["_password"] = password
+    elif acc_id.isdigit():
+        account["_password"] = secrets.store.get("mail_password_%s" % acc_id, "")
+    run_id = start_background("mailtest", lambda rid, m: tracking_engine.test_account(rid, account))
+    return JSONResponse({"run_id": run_id})
 
 
 @app.post("/settings/test-mail")

@@ -27,9 +27,10 @@ decisions that actually matter: which job, which cover letter, which interview.
 - **One view for everything** – a filterable list of all jobs on the left (live filters),
   the detail panel on the right with fit rationale, description, location/remote, status,
   links to the posting and company, plus the related emails.
-- **Track applications** – connect a mailbox (Gmail, Outlook, GMX, WEB.DE, STRATO, IONOS,
-  mailbox.org, Posteo, Yahoo, iCloud, Zoho, Fastmail or your own server); mail is read
-  read-only via IMAP and the status is assessed by the LLM.
+- **Track applications** – connect **one or more mailboxes** (Gmail, Outlook, GMX, WEB.DE,
+  STRATO, IONOS, mailbox.org, Posteo, Yahoo, iCloud, Zoho, Fastmail or your own server).
+  Each is read read-only via IMAP, the timeframe is shared across all, and the status is
+  assessed by the LLM.
 - **Documents** – keep CV, references, work samples and reference cover letters in one
   place, have them reviewed/improved by the LLM and generate cover letters.
 - **Model choice** – dropdown of every model available in opencode; analysis always runs

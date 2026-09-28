@@ -152,8 +152,12 @@ bricht den Suchlauf nicht ab. Die Kandidatenzahl pro Quelle ist gedeckelt
 (`source_max_candidates`, `source_results`), Detailabrufe bei der BA ebenfalls
 (`source_detail_max`). Zur Rechtslage siehe Abschnitt 13.
 
-**Tracking.** Das Postfach wird read-only und inkrementell per IMAP gelesen (nur neue
-Nachrichten seit dem letzten Scan). Relevante Mails werden gefiltert und dem Modell zur
+**Tracking.** Die Postfächer werden read-only und inkrementell per IMAP gelesen (nur neue
+Nachrichten seit dem letzten Scan). Es können **mehrere Mailkonten** hinterlegt werden
+(Tabelle `mail_accounts`); das Passwort je Konto liegt im Secret-Store unter
+`mail_password_<id>`. Der **Zeitrahmen** (`mail_since`/`last_scan`) ist gemeinsam: Alle
+Konten werden mit demselben „seit"-Datum gescannt, und der Marker wird erst am
+erfolgreichen Ende des Laufs gesetzt. Relevante Mails werden gefiltert und dem Modell zur
 Klassifikation vorgelegt. Das Ergebnis aktualisiert Status und Bewerbungsdatensätze.
 
 **Unterlagen.** PDF-, DOCX- und Textdateien werden zu Text extrahiert, per Modell

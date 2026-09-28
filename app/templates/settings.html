@@ -84,39 +84,78 @@
   </div>
 
   <div class="card stack">
-    <h2 style="margin-top:0">{{ t('settings.mail') }}</h2>
+    <h2 style="margin-top:0">{{ t('settings.mail_accounts') }}</h2>
     <p class="small muted">{{ t('settings.mail_hint') }}</p>
-    <div class="field"><label>{{ t('settings.provider') }}</label>
-      <select name="mail_provider" onchange="mbApplyProvider(this)">
-        <option value="">— bitte wählen —</option>
-        {% for p in mail_providers %}
-        <option value="{{ p.key }}" {% if values.mail_provider == p.key %}selected{% endif %}>{{ p.label }}</option>
-        {% endfor %}
-      </select>
-      <span id="mail-note" class="small muted"></span>
+    <div id="mail-list" class="stack">
+      {% for acc in mail_accounts %}
+      <details class="mail-acc" data-id="{{ acc.id }}">
+        <summary><span class="mail-sum-name">{{ acc.email or t('settings.mail_untitled') }}</span>
+          <span class="small muted"> {{ acc.provider }}</span></summary>
+        <input type="hidden" name="mail_id" value="{{ acc.id }}">
+        <input type="hidden" name="mail_label" value="{{ acc.label or '' }}">
+        <div class="grid cols-2">
+          <div class="field"><label>{{ t('settings.provider') }}</label>
+            <select name="mail_provider" onchange="mbMailProvider(this)">
+              <option value="">—</option>
+              {% for p in mail_providers %}<option value="{{ p.key }}" {% if acc.provider == p.key %}selected{% endif %}>{{ p.label }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="field"><label>{{ t('settings.email') }}</label><input name="mail_email" value="{{ acc.email or '' }}" placeholder="name@beispiel.de"></div>
+          <div class="field"><label>{{ t('settings.password') }} {% if mail_has_pw.get(acc.id) %}<span class="small muted">{{ t('settings.password_saved') }}</span>{% endif %}</label>
+            <input type="password" name="mail_password" placeholder="••••••••"></div>
+          <div class="field"><label>{{ t('settings.imap_host') }}</label><input name="mail_host" value="{{ acc.host or '' }}"></div>
+          <div class="field"><label>{{ t('settings.port') }}</label><input name="mail_port" value="{{ acc.port or '993' }}"></div>
+          <div class="field"><label>{{ t('settings.folders') }}</label><input name="mail_folders" value="{{ acc.folders or 'INBOX' }}"></div>
+        </div>
+        <span class="mail-note small muted"></span>
+        <div class="mail-acc-actions">
+          <button type="button" class="btn btn-sm" onclick="mbTestMailAcc(this)">{{ t('settings.test') }}</button>
+          <button type="button" class="btn btn-sm btn-danger" onclick="mbDeleteMailAcc(this)">{{ t('common.delete') }}</button>
+          <span class="mail-test-status small muted"></span>
+        </div>
+      </details>
+      {% endfor %}
     </div>
-    <div class="grid cols-2">
-      <div class="field"><label>{{ t('settings.email') }}</label><input name="mail_email" value="{{ values.mail_email }}" placeholder="name@beispiel.de"></div>
-      <div class="field"><label>{{ t('settings.password') }} {% if has_mail_password %}<span class="small muted">{{ t('settings.password_saved') }}</span>{% endif %}</label>
-        <input type="password" name="mail_password" placeholder="••••••••">
-      </div>
-      <div class="field"><label>{{ t('settings.imap_host') }}</label><input id="mail_host" name="mail_host" value="{{ values.mail_host }}"></div>
-      <div class="field"><label>{{ t('settings.port') }}</label><input id="mail_port" name="mail_port" value="{{ values.mail_port }}"></div>
-      <div class="field"><label>{{ t('settings.folders') }}</label><input name="mail_folders" value="{{ values.mail_folders }}"></div>
-    </div>
+    {% if not mail_accounts %}<p class="small muted">{{ t('settings.mail_none') }}</p>{% endif %}
+    <div><button type="button" class="btn" onclick="mbAddMailAcc()">+ {{ t('settings.add_mail') }}</button></div>
+    <div class="field"><label>{{ t('settings.mail_timeframe') }}</label>
+      <input type="date" name="mail_since" value="{{ values.mail_since }}"></div>
     <p class="small muted">{{ t('settings.incremental') }}</p>
-    <label class="small"><input type="checkbox" name="clear_password" value="1"> {{ t('settings.clear_password') }}</label>
   </div>
 
   <div><button class="btn btn-primary btn-lg btn-block" type="submit">{{ t('common.save') }}</button></div>
 </form>
 
+<template id="mail-acc-template">
+  <details class="mail-acc" data-id="" open>
+    <summary><span class="mail-sum-name">{{ t('settings.mail_untitled') }}</span></summary>
+    <input type="hidden" name="mail_id" value="">
+    <input type="hidden" name="mail_label" value="">
+    <div class="grid cols-2">
+      <div class="field"><label>{{ t('settings.provider') }}</label>
+        <select name="mail_provider" onchange="mbMailProvider(this)">
+          <option value="" selected>—</option>
+          {% for p in mail_providers %}<option value="{{ p.key }}">{{ p.label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field"><label>{{ t('settings.email') }}</label><input name="mail_email" placeholder="name@beispiel.de"></div>
+      <div class="field"><label>{{ t('settings.password') }}</label><input type="password" name="mail_password" placeholder="••••••••"></div>
+      <div class="field"><label>{{ t('settings.imap_host') }}</label><input name="mail_host"></div>
+      <div class="field"><label>{{ t('settings.port') }}</label><input name="mail_port" value="993"></div>
+      <div class="field"><label>{{ t('settings.folders') }}</label><input name="mail_folders" value="INBOX"></div>
+    </div>
+    <span class="mail-note small muted"></span>
+    <div class="mail-acc-actions">
+      <button type="button" class="btn btn-sm" onclick="mbTestMailAcc(this)">{{ t('settings.test') }}</button>
+      <button type="button" class="btn btn-sm btn-danger" onclick="mbDeleteMailAcc(this)">{{ t('common.delete') }}</button>
+      <span class="mail-test-status small muted"></span>
+    </div>
+  </details>
+</template>
+
 <div class="card" style="margin-top:20px">
   <h2 style="margin-top:0">{{ t('settings.shutdown') }}</h2>
   <div class="settings-actions">
-    <form method="post" action="/settings/test-mail">
-      <button class="btn" type="submit">{{ t('settings.test_mail') }}</button>
-    </form>
     <form method="post" action="/settings/import">
       <button class="btn" type="submit">{{ t('settings.import') }}</button>
     </form>
@@ -138,6 +177,85 @@ window.MB_TERMS_MSG = {
   done: {{ t('settings.suggest_done')|tojson }},
   fail: {{ t('settings.suggest_fail')|tojson }}
 };
+window.MB_MAIL_MSG = {
+  testing: {{ t('settings.mail_testing')|tojson }},
+  ok: {{ t('settings.mail_test_ok')|tojson }},
+  fail: {{ t('settings.mail_test_fail')|tojson }},
+  delete_confirm: {{ t('settings.mail_delete_confirm')|tojson }},
+  untitled: {{ t('settings.mail_untitled')|tojson }}
+};
+
+function mbMailProvider(sel) {
+  var acc = sel.closest('.mail-acc');
+  var p = (window.MB_PROVIDERS || {})[sel.value];
+  var note = acc.querySelector('.mail-note');
+  if (p && p.imap) {
+    acc.querySelector('[name=mail_host]').value = p.imap;
+    acc.querySelector('[name=mail_port]').value = p.port;
+  }
+  if (note) note.textContent = (p && p.note) ? p.note : '';
+}
+
+function mbAddMailAcc() {
+  var tpl = document.getElementById('mail-acc-template');
+  var node = tpl.content.firstElementChild.cloneNode(true);
+  document.getElementById('mail-list').appendChild(node);
+  node.open = true;
+  if (node.scrollIntoView) node.scrollIntoView({ block: 'nearest' });
+}
+
+function mbDeleteMailAcc(btn) {
+  var acc = btn.closest('.mail-acc');
+  if (!confirm(window.MB_MAIL_MSG.delete_confirm)) return;
+  var id = acc.getAttribute('data-id') || '';
+  if (id) {
+    fetch('/settings/mail/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ id: id }),
+    }).then(function () { acc.remove(); });
+  } else {
+    acc.remove();
+  }
+}
+
+function mbTestMailAcc(btn) {
+  var acc = btn.closest('.mail-acc');
+  var status = acc.querySelector('.mail-test-status');
+  var body = new URLSearchParams({
+    mail_id: acc.getAttribute('data-id') || '',
+    mail_provider: acc.querySelector('[name=mail_provider]').value,
+    mail_email: acc.querySelector('[name=mail_email]').value,
+    mail_password: acc.querySelector('[name=mail_password]').value,
+    mail_host: acc.querySelector('[name=mail_host]').value,
+    mail_port: acc.querySelector('[name=mail_port]').value,
+  });
+  btn.disabled = true;
+  status.textContent = window.MB_MAIL_MSG.testing;
+  fetch('/settings/mail/test', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: body,
+  }).then(function (r) { return r.json(); })
+    .then(function (d) { mbPollMailTest(d.run_id, 0, btn, status); })
+    .catch(function () { status.textContent = window.MB_MAIL_MSG.fail; btn.disabled = false; });
+}
+
+function mbPollMailTest(runId, tries, btn, status) {
+  if (tries > 80) { status.textContent = window.MB_MAIL_MSG.fail; btn.disabled = false; return; }
+  fetch('/api/runs/' + runId)
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d.status === 'laeuft') { setTimeout(function () { mbPollMailTest(runId, tries + 1, btn, status); }, 1500); return; }
+      btn.disabled = false;
+      if (d.status === 'ok') {
+        status.textContent = window.MB_MAIL_MSG.ok + ' (' + ((d.result && d.result.ordner) || 0) + ')';
+      } else {
+        status.textContent = (d.result && d.result.text) || window.MB_MAIL_MSG.fail;
+      }
+    })
+    .catch(function () { setTimeout(function () { mbPollMailTest(runId, tries + 1, btn, status); }, 1500); });
+}
 
 function mbSuggestTerms() {
   var btn = document.getElementById('btn-terms');

@@ -16,6 +16,20 @@
   </div>
 </div>
 
+{% if last_update %}
+<div class="card tight last-update" style="margin:0 0 16px;padding:9px 13px">
+  <span class="lu-title">{{ t('jobs.last_update') }}:</span>
+  <span class="lu-when">{{ last_update.when }}</span>
+  {% if last_update.changes %}
+  <span class="lu-list">
+    {% for c in last_update.changes %}<span class="lu-item"><span class="lu-dot" style="background:{{ status_colors.get(c.status, '#94a3b8') }}"></span>{{ c.company }} → {{ c.label }}</span>{% endfor %}
+  </span>
+  {% else %}
+  <span class="lu-empty">{{ t('jobs.no_changes') }}</span>
+  {% endif %}
+</div>
+{% endif %}
+
 {% if not opencode_ok %}
 <div class="banner" style="background:rgba(220,38,38,.12);border-color:var(--err);color:var(--err)">
   <span><strong>opencode</strong> {{ "not found – analysis disabled." if lang == "en" else "wurde nicht gefunden – Analysen sind deaktiviert." }}</span>

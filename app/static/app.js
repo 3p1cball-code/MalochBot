@@ -203,7 +203,16 @@ function mbEsc(s) {
     if (j.found_at) addEntry((j.found_at || "").slice(0, 10), j.found_at, "gefunden", "Stelle gefunden");
     (j.emails || []).forEach(function (m) {
       const d = (m.date || "").slice(0, 10);
-      addEntry(d, d + "T12:00:00", "mail", mbEsc(m.from_addr) + " – " + mbEsc(m.subject));
+      const links = m.links || [];
+      const chips = links.map(function (lnk) {
+        if (!lnk || !lnk.url) return "";
+        return '<a class="tl-link' + (lnk.imp ? " tl-link-imp" : "") + '" href="' + mbEsc(lnk.url) +
+          '" target="_blank" rel="noopener">' + mbEsc(lnk.label || "Link") + "</a>";
+      }).join(" ");
+      const hasImp = links.some(function (lnk) { return lnk && lnk.imp; });
+      let text = mbEsc(m.from_addr) + " – " + mbEsc(m.subject);
+      if (chips) text += (hasImp ? "\n" : " ") + chips;
+      addEntry(d, d + "T12:00:00", "mail", text);
     });
     (j.events || []).forEach(function (e) {
       const d = (e.date || "").slice(0, 10);
@@ -214,7 +223,8 @@ function mbEsc(s) {
       return a.sort < b.sort ? -1 : (a.sort > b.sort ? 1 : 0);
     });
     const timeline = events.map(function (e) {
-      return '<li class="tl-' + e.kind + '"><span class="tl-date">' + (e.date || "–") + "</span>" +
+      const multi = e.text.indexOf("\n") !== -1;
+      return '<li class="tl-' + e.kind + (multi ? " tl-block" : "") + '"><span class="tl-date">' + (e.date || "–") + "</span>" +
         '<span class="tl-text">' + e.text + "</span></li>";
     }).join("");
 

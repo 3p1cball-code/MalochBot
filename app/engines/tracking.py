@@ -4,6 +4,7 @@ laesst den Status von opencode/LLM bewerten und aktualisiert die Datenbank.
 
 import email
 import imaplib
+import json
 import re
 import unicodedata
 from datetime import datetime, date
@@ -98,6 +99,75 @@ def _hint(frm: str, body: str) -> str:
     return ""
 
 
+_URL_RE = re.compile(r"https?://[^\s<>\"'\)\]]+", re.I)
+_LINK_NOISE = re.compile(
+    r"(unsubscribe|abmelden|abmeldung|opt-?out|datenschutz|privacy|impressum|"
+    r"twitter\.com|facebook\.com|instagram\.com|linkedin\.com|xing\.com|youtube\.com|"
+    r"mailchimp|list-manage|sendgrid|mandrill|doubleclick|mailtrack|"
+    r"powered-?by|googleusercontent|licdn\.com|gstatic|ui-avatars|w3\.org|zenprospect|"
+    r"amazonaws\.com|"
+    r"track(ing)?[./?=]|/open\b|/click\b|pixel\.|\.(png|jpe?g|gif|svg|webp|css|js)(\?|$))",
+    re.I)
+_SCHEDULE_HINTS = ("calendly", "cal.com/", "doodle", "savvycal", "zcal", "tidycal",
+                   "meetings.hubspot", "outlook.office.com/book", "outlook.office365.com/book",
+                   "bookings.microsoft", "bookings.office", "/book", "calendar.appointments",
+                   "/appointments/booking")
+_MEETING_HINTS = ("teams.microsoft", "teams.live", "zoom.us", "meet.google", "gotomeeting",
+                  "webex", "whereby")
+_FORM_HINTS = ("docs.google.com/forms", "forms.office.com", "typeform", "forms.gle",
+               "surveymonkey")
+_APPLY_HINTS = tuple(ATS_HOSTS) + (
+    "greenhouse", "lever.co", "workday", "softgarden", "personio", "comeet", "recruitee",
+    "ashby", "smartrecruiters", "teamtailor", "onlyfy", "breezy", "umantis", "jobvite",
+    "icims", "/apply", "bewerbung", "application", "dvinci", "hrworks", "homerun",
+    "rexx-systems", "haufe")
+
+
+def _link_label(url: str) -> str:
+    u = url.lower()
+    if any(k in u for k in _SCHEDULE_HINTS):
+        return "Termin finden"
+    if any(k in u for k in _MEETING_HINTS):
+        return "Meeting-Link"
+    if any(k in u for k in _APPLY_HINTS):
+        return "Bewerbung/Portal"
+    if any(k in u for k in _FORM_HINTS):
+        return "Formular"
+    return "Link"
+
+
+def _extract_links(msg, limit: int = 10) -> list:
+    """Wichtige Links einer Mail aus Text- und HTML-Teil (inkl. href-Attribute)."""
+    urls = []
+    parts = msg.walk() if msg.is_multipart() else [msg]
+    for part in parts:
+        if part.get_content_type() not in ("text/plain", "text/html"):
+            continue
+        try:
+            payload = part.get_payload(decode=True)
+        except Exception:
+            continue
+        if not payload:
+            continue
+        text = payload.decode(part.get_content_charset() or "utf-8", "replace")
+        text = text.replace("&amp;", "&").replace("&#38;", "&")
+        for match in _URL_RE.findall(text):
+            url = match.rstrip(".,;:)]}\"'")
+            if url and url not in urls:
+                urls.append(url)
+    out = []
+    for url in urls:
+        if _LINK_NOISE.search(url):
+            continue
+        label = _link_label(url)
+        if label == "Link":  # nur wichtige Links behalten
+            continue
+        out.append({"url": url, "label": label, "imp": True})
+        if len(out) >= limit:
+            break
+    return out
+
+
 def _clean_phase(value) -> str:
     text = (str(value) if value is not None else "").strip()
     norm = (text.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue")
@@ -117,15 +187,23 @@ def _clean_date(value) -> str:
     return ""
 
 
-def _connect():
-    provider = db.get_setting("mail_provider", "")
-    host = db.get_setting("mail_host", "")
-    port = int(db.get_setting("mail_port", "993") or 993)
-    address = db.get_setting("mail_email", "")
-    password = secrets.store.get("mail_password", "")
+def _connect(account=None):
+    if account is None:
+        accounts = db.list_mail_accounts()
+        if not accounts:
+            raise RuntimeError("Kein Mailkonto eingerichtet. Bitte in den Einstellungen verbinden.")
+        account = accounts[0]
+    provider = account.get("provider", "")
+    host = account.get("host", "")
+    port = int(account.get("port", "993") or 993)
+    address = account.get("email", "")
+    password = (account.get("_password")
+                or secrets.store.get("mail_password_%s" % account.get("id", ""), "")
+                or secrets.store.get("mail_password", ""))
     host, port = providers.resolve(provider, host, port)
     if not host or not address or not password:
-        raise RuntimeError("Mailkonto unvollstaendig. Bitte in den Einstellungen verbinden.")
+        raise RuntimeError("Mailkonto '%s' unvollstaendig. Bitte in den Einstellungen ergaenzen."
+                           % (address or "(ohne Adresse)"))
     client = imaplib.IMAP4_SSL(host, port)
     client.login(address, password)
     return client
@@ -146,11 +224,12 @@ def _list_folders(client):
     return names
 
 
-def _scan(client, jobs=None, since_iso=None):
+def _scan(client, account=None, since_iso=None, jobs=None):
+    account = account or {}
     since_iso = since_iso or db.get_setting("last_scan", "") or date.today().isoformat()
     since = datetime.strptime(since_iso, "%Y-%m-%d").strftime("%d-%b-%Y")
-    configured = db.get_setting("mail_folders", "INBOX")
-    address = (db.get_setting("mail_email", "") or "").lower()
+    configured = account.get("folders") or db.get_setting("mail_folders", "INBOX")
+    address = (account.get("email") or db.get_setting("mail_email", "") or "").lower()
     folders = _list_folders(client)
     wanted = [f for f in folders if f.upper().startswith("INBOX") or _is_sent(f)] + \
              [f for f in configured.split(",") if f.strip() and f.strip() not in folders]
@@ -185,7 +264,8 @@ def _scan(client, jobs=None, since_iso=None):
             body = _body(msg, 1200)
             found.append({"date": iso, "folder": folder, "from": frm, "to": to,
                           "direction": "out" if is_out else "in",
-                          "subject": subj, "body": body, "hint": _hint(frm, body)})
+                          "subject": subj, "body": body, "hint": _hint(frm, body),
+                          "links": _extract_links(msg)})
     found.sort(key=lambda m: m["date"])
     return found
 
@@ -196,10 +276,13 @@ def _store_emails(mails, jobs, run_id):
     for i, mail in enumerate(mails):
         try:
             db.execute(
-                "INSERT OR IGNORE INTO emails(date,folder,from_addr,subject,body,job_id,run_id,"
-                "created_at) VALUES(?,?,?,?,?,?,?,?)",
+                "INSERT INTO emails(date,folder,from_addr,subject,body,links,job_id,run_id,"
+                "created_at) VALUES(?,?,?,?,?,?,?,?,?) "
+                "ON CONFLICT(date,folder,from_addr,subject) DO UPDATE SET "
+                "links=excluded.links, body=excluded.body, run_id=excluded.run_id",
                 (mail["date"], mail["folder"], mail["from"], mail["subject"],
-                 mail["body"], None, run_id, db.now_iso()))
+                 mail["body"], json.dumps(mail.get("links", []), ensure_ascii=False),
+                 None, run_id, db.now_iso()))
             row = db.one(
                 "SELECT id FROM emails WHERE date=? AND folder=? AND from_addr=? AND subject=?",
                 (mail["date"], mail["folder"], mail["from"], mail["subject"]))
@@ -308,21 +391,54 @@ def recheck_job(job_id: int, run_id: int, model: str = "") -> dict:
     return {"aktualisiert": updated}
 
 
-def run_tracking(run_id: int, model: str = "") -> dict:
-    jobs = db.query("SELECT id, company, title FROM jobs")
-    if not jobs:
-        raise RuntimeError("Es sind noch keine Jobs in der Datenbank.")
-    logbus.log(run_id, "info", "Verbinde mit Postfach ...")
-    client = _connect()
+def test_account(run_id: int, account: dict) -> dict:
+    """Verbindungstest fuer ein einzelnes (ggf. noch nicht gespeichertes) Konto."""
+    client = _connect(account)
     try:
-        logbus.log(run_id, "info", "Scanne neue Mails ...")
-        mails = _scan(client, jobs)
+        folders = _list_folders(client)
+        logbus.log(run_id, "info", "%s: Verbindung erfolgreich. Ordner: %s"
+                   % (account.get("email", ""), ", ".join(folders[:12])))
     finally:
         try:
             client.logout()
         except Exception:
             pass
-    logbus.log(run_id, "info", "%d Mails gelesen (Ein-/Ausgang)." % len(mails))
+    return {"status": "ok", "ordner": len(folders), "email": account.get("email", "")}
+
+
+def run_tracking(run_id: int, model: str = "") -> dict:
+    jobs = db.query("SELECT id, company, title FROM jobs")
+    if not jobs:
+        raise RuntimeError("Es sind noch keine Jobs in der Datenbank.")
+    accounts = db.list_mail_accounts()
+    if not accounts:
+        raise RuntimeError("Kein Mailkonto eingerichtet. Bitte in den Einstellungen verbinden.")
+
+    since_iso = db.get_setting("last_scan", "") or None
+    mails = []
+    ok_accounts = 0
+    for account in accounts:
+        logbus.log(run_id, "info", "Verbinde Postfach %s ..." % (account.get("email") or "?"))
+        try:
+            client = _connect(account)
+        except Exception as exc:
+            logbus.log(run_id, "error", "Postfach %s: %s" % (account.get("email") or "?", exc))
+            continue
+        ok_accounts += 1
+        try:
+            found = _scan(client, account, since_iso)
+            mails.extend(found)
+            logbus.log(run_id, "info", "%d Mails gelesen (%s)."
+                       % (len(found), account.get("email") or "?"))
+        finally:
+            try:
+                client.logout()
+            except Exception:
+                pass
+    if ok_accounts == 0:
+        raise RuntimeError("Keines der Postfaecher war erreichbar.")
+
+    logbus.log(run_id, "info", "%d Mails gelesen (alle Postfaecher)." % len(mails))
     for i, m in enumerate(mails):
         m["id"] = i
     mail_rows = _store_emails(mails, jobs, run_id)

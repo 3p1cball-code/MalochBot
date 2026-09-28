@@ -77,6 +77,7 @@ CREATE TABLE IF NOT EXISTS emails (
     from_addr TEXT DEFAULT '',
     subject TEXT DEFAULT '',
     body TEXT DEFAULT '',
+    links TEXT DEFAULT '[]',
     job_id INTEGER,
     classification TEXT DEFAULT '',
     confidence TEXT DEFAULT '',
@@ -121,6 +122,16 @@ CREATE TABLE IF NOT EXISTS events (
 CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
     value TEXT DEFAULT ''
+);
+CREATE TABLE IF NOT EXISTS mail_accounts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    label TEXT DEFAULT '',
+    provider TEXT DEFAULT '',
+    email TEXT DEFAULT '',
+    host TEXT DEFAULT '',
+    port TEXT DEFAULT '993',
+    folders TEXT DEFAULT 'INBOX',
+    created_at TEXT DEFAULT ''
 );
 """
 
@@ -195,6 +206,9 @@ def init_db() -> None:
             conn.execute("ALTER TABLE jobs ADD COLUMN manual INTEGER DEFAULT 0")
         if "hl" not in columns:
             conn.execute("ALTER TABLE jobs ADD COLUMN hl TEXT DEFAULT ''")
+        mail_columns = {row["name"] for row in conn.execute("PRAGMA table_info(emails)").fetchall()}
+        if "links" not in mail_columns:
+            conn.execute("ALTER TABLE emails ADD COLUMN links TEXT DEFAULT '[]'")
         conn.execute("UPDATE jobs SET status='gefunden' WHERE status='neu'")
         conn.execute("UPDATE jobs SET status='beworben' WHERE status='bestaetigt'")
         # Dokumentpfade portabel machen (nach Migration auf anderen Rechner/Ordner)
@@ -206,6 +220,32 @@ def init_db() -> None:
         for key, value in DEFAULT_SETTINGS.items():
             conn.execute("INSERT OR IGNORE INTO settings(key, value) VALUES (?,?)", (key, value))
         conn.commit()
+    _migrate_mail_accounts()
+
+
+def _migrate_mail_accounts() -> None:
+    """Einzelnes Mailkonto (alte Einstellungen) in die mail_accounts-Tabelle uebernehmen."""
+    try:
+        if one("SELECT id FROM mail_accounts LIMIT 1"):
+            return
+        email = get_setting("mail_email", "")
+        if not email:
+            return
+        new_id = execute(
+            "INSERT INTO mail_accounts(provider,email,host,port,folders,created_at) VALUES(?,?,?,?,?,?)",
+            (get_setting("mail_provider", ""), email, get_setting("mail_host", ""),
+             get_setting("mail_port", "993") or "993",
+             get_setting("mail_folders", "INBOX") or "INBOX", now_iso()))
+        try:
+            from . import secrets
+            password = secrets.store.get("mail_password", "")
+            if password:
+                secrets.store.set("mail_password_%d" % new_id, password)
+                secrets.store.delete("mail_password")
+        except Exception:
+            pass
+    except Exception:
+        pass
 
 
 def query(sql: str, params=()) -> list:
@@ -238,6 +278,32 @@ def set_setting(key: str, value: str) -> None:
 
 def all_settings() -> dict:
     return {row["key"]: row["value"] for row in query("SELECT key, value FROM settings")}
+
+
+def list_mail_accounts() -> list:
+    return query("SELECT * FROM mail_accounts ORDER BY id")
+
+
+def get_mail_account(account_id: int):
+    return one("SELECT * FROM mail_accounts WHERE id=?", (account_id,))
+
+
+def add_mail_account(provider: str, email: str, host: str, port: str, folders: str,
+                     label: str = "") -> int:
+    return execute(
+        "INSERT INTO mail_accounts(label,provider,email,host,port,folders,created_at) "
+        "VALUES(?,?,?,?,?,?,?)",
+        (label, provider, email, host, port, folders, now_iso()))
+
+
+def update_mail_account(account_id: int, provider: str, email: str, host: str, port: str,
+                        folders: str, label: str = "") -> None:
+    execute("UPDATE mail_accounts SET label=?,provider=?,email=?,host=?,port=?,folders=? WHERE id=?",
+            (label, provider, email, host, port, folders, account_id))
+
+
+def delete_mail_account(account_id: int) -> None:
+    execute("DELETE FROM mail_accounts WHERE id=?", (account_id,))
 
 
 def is_known(company: str, title: str, url: str = "") -> bool:
