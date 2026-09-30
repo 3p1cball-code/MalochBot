@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import queue
+import re
 import shutil
 import signal
 import threading
@@ -19,6 +20,8 @@ from . import config, db, logbus, providers, secrets, i18n
 from .engines import search as search_engine
 from .engines import tracking as tracking_engine
 from .engines import documents as documents_engine
+from .engines import stats as stats_engine
+from . import exporting
 from . import import_legacy
 from . import opencode_adapter
 
@@ -294,54 +297,43 @@ def applications_update():
 # ---------------------------------------------------------------- Statistiken
 @app.get("/stats", response_class=HTMLResponse)
 def stats(request: Request):
-    status_counts = {s: 0 for s in config.JOB_STATUSES}
-    for row in db.query("SELECT status, COUNT(*) n FROM jobs GROUP BY status"):
-        status_counts[row["status"]] = row["n"]
-    phase_rows = db.query("SELECT phase, COUNT(*) n FROM applications GROUP BY phase ORDER BY n DESC")
-
-    found_rows = db.query("SELECT substr(found_at,1,10) d, COUNT(*) n FROM jobs "
-                          "WHERE found_at<>'' GROUP BY d ORDER BY d")
-    daily = [{"d": r["d"], "found": r["n"]} for r in found_rows]
-
-    fits = [(r["score"] or 0) for r in db.query("SELECT score FROM jobs") if (r["score"] or 0) > 0]
-    fit = {("%d-%d" % (i, i + 9)): 0 for i in range(0, 90, 10)}
-    fit["90-100"] = 0
-    for s in fits:
-        key = "90-100" if s >= 90 else "%d-%d" % (s // 10 * 10, s // 10 * 10 + 9)
-        fit[key] = fit.get(key, 0) + 1
-    fit_sorted = sorted(fits)
-    fit_median = fit_sorted[len(fit_sorted) // 2] if fit_sorted else 0
-    fit_avg = round(sum(fits) / len(fits)) if fits else 0
     lang = db.get_setting("language", "de")
-    total = sum(status_counts.values())
-    applied = sum(v for k, v in status_counts.items()
-                  if k in ("beworben", "interview", "angebot", "abgelehnt"))
-    responses = db.one("SELECT COUNT(*) n FROM applications")["n"]
-    interviews = status_counts.get("interview", 0)
-    offers = status_counts.get("angebot", 0)
-    rejections = status_counts.get("abgelehnt", 0)
-    data = {
-        "total": total, "applied": applied, "with_response": responses,
-        "interviews": interviews, "rejections": rejections, "offers": offers,
-        "found": status_counts.get("gefunden", 0),
-        "response_rate": round(responses / applied * 100) if applied else 0,
-        "interview_rate": round(interviews / applied * 100) if applied else 0,
-        "status_counts": status_counts,
-        "status_labels": config.status_labels(lang),
-        "status_colors": config.STATUS_COLORS,
-        "phases": [{"label": r["phase"], "n": r["n"]} for r in phase_rows],
-        "daily": daily,
-        "fit": [{"label": k, "n": v} for k, v in fit.items()],
-        "fit_avg": fit_avg, "fit_median": fit_median, "fit_n": len(fits),
-        "funnel": [
-            {"key": "found", "n": total},
-            {"key": "applied", "n": applied},
-            {"key": "response", "n": responses},
-            {"key": "interview", "n": interviews},
-            {"key": "offer", "n": offers},
-        ],
-    }
-    return tr("stats.html", _ctx(request, stats_json=json.dumps(data, ensure_ascii=False)))
+    data = stats_engine.collect(lang)
+    return tr("stats.html", _ctx(
+        request, stats_json=json.dumps(data, ensure_ascii=False),
+        pdf_ready=exporting.available(),
+        report_from=db.get_setting("report_from_month", ""),
+        report_to=db.get_setting("report_to_month", ""),
+        months=stats_engine.application_months(lang)))
+
+
+def _month_param(value: str) -> str:
+    value = (value or "").strip()
+    return value if re.match(r"^\d{4}-\d{2}$", value) else ""
+
+
+@app.get("/stats/export")
+def stats_export(from_month: str = "", to_month: str = ""):
+    """Bewerbungs-/Bemuehungsnachweis als PDF im Web-Design.
+
+    Die Einzelliste laesst sich per Monatsbereich (YYYY-MM, inklusive) einschraenken;
+    die Auswahl wird gespeichert und beim naechsten Mal vorbelegt.
+    """
+    lang = db.get_setting("language", "de")
+    theme = db.get_setting("pdf_theme", "hell")
+    from_month = _month_param(from_month)
+    to_month = _month_param(to_month)
+    db.set_setting("report_from_month", from_month)
+    db.set_setting("report_to_month", to_month)
+    html_doc = exporting.build_report_html(theme, lang, from_month, to_month)
+    stamp = time.strftime("%Y-%m-%d")
+    name = "MalochBot-Bewerbungsnachweis_%s.pdf" % stamp
+    out = config.GENERATED_DIR / name
+    if exporting.render_pdf(html_doc, out):
+        return FileResponse(str(out), filename=name, media_type="application/pdf")
+    html_out = config.GENERATED_DIR / ("MalochBot-Bewerbungsnachweis_%s.html" % stamp)
+    html_out.write_text(html_doc, encoding="utf-8")
+    return FileResponse(str(html_out), filename=html_out.name, media_type="text/html")
 
 
 # ---------------------------------------------------------------- Unterlagen
@@ -556,7 +548,7 @@ def settings(request: Request, saved: str = ""):
 async def settings_save(request: Request):
     form = await request.form()
     for key in ("model", "profile", "preferences", "search_extra", "fit_threshold",
-                "home_city", "mail_since",
+                "home_city", "mail_since", "pdf_theme",
                 "search_terms", "source_results", "source_max_age_days",
                 "source_radius_km", "jobspy_sites", "jobspy_country",
                 "jobspy_hours_old", "jobspy_location"):

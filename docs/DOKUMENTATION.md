@@ -29,6 +29,9 @@ mühsame Routine der Jobsuche ab.
 - Anschreiben-Erzeugung auf Basis von Profil, Lebenslauf und Referenzanschreiben.
 - Anschreiben-Verbesserung per Freitext-Feedback.
 - Statistiken mit Diagrammen zu Status, Phasen, Fit, Herkunft und Monatsverlauf.
+- **Bewerbungs-/Bemühungsnachweis als PDF:** die Statistik plus Einzelliste aller
+  angeschriebenen Stellen (Datum, Firma, Position, Ort, Kanal, Status, Reaktion, Link).
+  Alle PDFs erscheinen im Design der Webseite (hell oder dunkel, in den Einstellungen wählbar).
 - Live-Log, Fehlerprotokolle, zwei Designs (Hell/Dunkel), Deutsch/Englisch.
 
 ## 3. Architektur
@@ -53,9 +56,12 @@ Kernmodule unter `app/`:
 - `opencode_adapter.py` — Aufruf der opencode-CLI und robuste JSON-Extraktion.
 - `providers.py` — Mail-Anbieter-Presets.
 - `i18n.py` — Übersetzungen (Deutsch/Englisch).
+- `exporting.py` — gemeinsamer PDF-Export im Web-Design (HTML → WeasyPrint,
+  Fallback fpdf2); Theme-Tokens, Diagramme und Fusszeile.
 - `engines/search.py` — Jobsuche.
 - `engines/tracking.py` — Postfach-Auswertung.
 - `engines/documents.py` — Unterlagen und Anschreiben.
+- `engines/stats.py` — Kennzahlen und Bewerbungsliste (Web-Anzeige und PDF-Export).
 
 ## 4. Datenmodell
 
@@ -68,7 +74,7 @@ Alle fachlichen Daten liegen in SQLite-Tabellen:
 - `documents` — hochgeladene Unterlagen mit Art, Version und Bewertungstext.
 - `runs` — jeder Analyse-Lauf mit Status, Modell und Ergebnis.
 - `logs` — Zeilen des Live-Logs.
-- `settings` — Konfiguration ohne Geheimnisse (Modell, Sprache, Schwellen).
+- `settings` — Konfiguration ohne Geheimnisse (Modell, Sprache, Schwellen, PDF-Stil).
 
 Beim Start prüft die Anwendung das Schema und ergänzt fehlende Spalten. Dokumentpfade
 werden dabei automatisch an den aktuellen Datenordner angepasst, sodass ein Umzug auf
@@ -163,6 +169,22 @@ Klassifikation vorgelegt. Das Ergebnis aktualisiert Status und Bewerbungsdatens�
 **Unterlagen.** PDF-, DOCX- und Textdateien werden zu Text extrahiert, per Modell
 bewertet und auf Wunsch zu einer verbesserten Kopie verarbeitet. Anschreiben werden aus
 Profil, Lebenslauf und einem Referenzanschreiben erzeugt und als PDF gespeichert.
+
+**PDF-Export.** Alle PDFs (Anschreiben, verbesserte Dokumente und der Bewerbungsnachweis)
+werden als HTML im Stil der Webseite gebaut (`app/templates/export/`) und über WeasyPrint
+gerendert. Der Stil (hell/dunkel) wird in den Einstellungen gewählt (`pdf_theme`). Jede
+Seite trägt eine Fusszeile mit Herkunftshinweis, GitHub-Link und Autor. Fehlt WeasyPrint
+(z. B. Windows ohne GTK), greift automatisch das einfache fpdf2-Layout.
+
+**Bewerbungsnachweis.** `GET /stats/export` erzeugt das PDF; Datengrundlage ist
+`engines/stats.py` — dieselben Kennzahlen wie die Statistikseite plus die Liste aller
+beworbenen Stellen. Die Einzelliste lässt sich über `from_month`/`to_month` (YYYY-MM,
+inklusive) auf einen Monatsbereich einschränken; die Auswahl wird in den Einstellungen
+gespeichert und auf der Statistikseite vorbelegt. Kennzahlen und Diagramme beziehen sich
+weiterhin auf den Gesamtbestand (so gekennzeichnet). Das Datum „angeschrieben am" wird
+aus den vorhandenen Daten abgeleitet: bei importierten Altbewerbungen das übernommene
+Bewerbungsdatum, sonst Statuswechsel → Anschreiben-Dateidatum → Bewerbungsdatensatz →
+Erfassung.
 
 ## 7. Integration der opencode-CLI
 

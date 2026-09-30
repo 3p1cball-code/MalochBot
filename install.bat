@@ -22,6 +22,9 @@ call .venv\Scripts\activate.bat
 python -m pip install --upgrade pip >nul
 pip install -r requirements.txt
 
+echo Hinweis PDF: der Export nutzt WeasyPrint im Web-Design. Fehlen unter Windows die
+echo   GTK-Bibliotheken, faellt er automatisch auf das einfache fpdf2-Layout zurueck.
+
 echo Zusaetzliche Jobboersen (optional: LinkedIn/Indeed via JobSpy) ...
 pip install -r requirements-sources.txt >nul 2>nul
 if errorlevel 1 (

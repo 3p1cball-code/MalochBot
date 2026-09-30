@@ -3,13 +3,13 @@ massgeschneiderten Anschreiben.
 """
 
 import glob
-import html as html_mod
 import os
 import re
 import shutil
 import subprocess
 
 from .. import config, db, logbus
+from .. import exporting
 from .. import opencode_adapter as oc
 
 EVAL_PROMPT = """Bewerte das folgende Dokument kurz und konkret auf Deutsch.
@@ -184,7 +184,8 @@ def improve_document(doc_id: int, run_id: int, model: str = "", instruction: str
     ext = ext.lower()
     if ext in (".pdf", ".docx"):
         target = _unique_output(stem + "_verbessert", ".pdf")
-        if not text_to_pdf(improved, target, photo=_portrait_path()):
+        if not text_to_pdf(improved, target, photo=_portrait_path(),
+                           title=os.path.splitext(doc["name"])[0]):
             target = _unique_output(stem + "_verbessert", ".md")
             target.write_text(improved, encoding="utf-8")
     else:
@@ -261,8 +262,36 @@ def _portrait_path() -> str:
     return ""
 
 
-def text_to_pdf(text: str, path, photo: str = "") -> bool:
-    """Setzt Markdown-aehnlichen Text als sauberes PDF (fpdf2, ohne LibreOffice)."""
+def _pdf_theme() -> str:
+    return db.get_setting("pdf_theme", "hell") or "hell"
+
+
+def text_to_pdf(text: str, path, photo: str = "", title: str = "Dokument",
+                lang: str = "") -> bool:
+    """Setzt Markdown-aehnlichen Text als PDF im Design der Webseite.
+
+    Bevorzugt HTML -> PDF ueber WeasyPrint (app/exporting.py). Ist WeasyPrint
+    nicht verfuegbar, wird auf das bisherige fpdf-Layout zurueckgefallen.
+    """
+    theme = _pdf_theme()
+    lang = lang or db.get_setting("language", "de")
+    try:
+        html_doc = exporting.build_document_html(text, title, theme, lang)
+        html_path = os.path.splitext(str(path))[0] + ".html"
+        try:
+            with open(html_path, "w", encoding="utf-8") as fh:
+                fh.write(html_doc)
+        except OSError:
+            pass
+        if exporting.available() and exporting.render_pdf(html_doc, path):
+            return True
+    except Exception as exc:
+        logbus.log(None, "error", "PDF-Export (HTML) fehlgeschlagen: %s" % exc)
+    return _text_to_pdf_fpdf(text, path, photo=photo)
+
+
+def _text_to_pdf_fpdf(text: str, path, photo: str = "") -> bool:
+    """Fallback: einfaches PDF via fpdf2, wenn WeasyPrint fehlt/fehlschlaegt."""
     try:
         from fpdf import FPDF
     except Exception:
@@ -358,10 +387,20 @@ def _save_cover_letter(job, text: str, run_id: int, photo: str = "") -> str:
     md_path = _cover_md_path(job)
     md_path.write_text(text, encoding="utf-8")
     html_path = md_path.with_suffix(".html")
-    body = "<pre style='font-family:Arial;white-space:pre-wrap'>%s</pre>" % html_mod.escape(text)
-    html_path.write_text("<html><body>%s</body></html>" % body, encoding="utf-8")
     pdf_path = md_path.with_suffix(".pdf")
-    made_pdf = text_to_pdf(text, pdf_path, photo=photo or _portrait_path())
+    theme = _pdf_theme()
+    lang = (job.get("language") or db.get_setting("language", "de") or "de")[:2]
+    made_pdf = False
+    try:
+        html_doc = exporting.build_letter_html(
+            text, job, theme, lang, photo=photo or _portrait_path())
+        html_path.write_text(html_doc, encoding="utf-8")
+        if exporting.available():
+            made_pdf = exporting.render_pdf(html_doc, pdf_path)
+    except Exception as exc:
+        logbus.log(run_id, "error", "Anschreiben-Export (HTML) fehlgeschlagen: %s" % exc)
+    if not made_pdf:
+        made_pdf = _text_to_pdf_fpdf(text, pdf_path, photo=photo or _portrait_path())
     result = str(pdf_path if made_pdf else (html_path if html_path.exists() else md_path))
     db.execute("UPDATE jobs SET cover_letter=? WHERE id=?", (result, job["id"]))
     logbus.log(run_id, "info", "Anschreiben gespeichert: %s" % os.path.basename(result))

@@ -6,7 +6,21 @@
     <h1>{{ t('stats.title') }}</h1>
     <p class="subtitle" style="margin:2px 0 0">{{ t('stats.subtitle') }}</p>
   </div>
+  <form class="head-actions report-range" method="get" action="/stats/export" style="align-items:flex-end">
+    <div class="field"><label>{{ t('stats.from_month') }}</label>
+      <select name="from_month">
+        <option value="">{{ t('stats.range_all') }}</option>
+        {% for m in months %}<option value="{{ m }}" {% if report_from == m %}selected{% endif %}>{{ m[5:7] }}/{{ m[:4] }}</option>{% endfor %}
+      </select></div>
+    <div class="field"><label>{{ t('stats.to_month') }}</label>
+      <select name="to_month">
+        <option value="">{{ t('stats.range_all') }}</option>
+        {% for m in months %}<option value="{{ m }}" {% if report_to == m %}selected{% endif %}>{{ m[5:7] }}/{{ m[:4] }}</option>{% endfor %}
+      </select></div>
+    <button class="btn btn-primary" type="submit">{{ t('stats.export') }}</button>
+  </form>
 </div>
+<p class="small muted" style="margin:-8px 0 18px">{{ t('stats.export_hint') }}</p>
 
 <div class="stack stats-page">
 <div class="grid cols-4" id="stat-cards"></div>

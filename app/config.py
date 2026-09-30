@@ -7,6 +7,11 @@ TAGLINE = "Die Maloche der Jobsuche nimmt dir MalochBot ab."
 DONATE_EMAIL = "alexander.riedel@eyedea3d.com"
 DONATE_PAYPAL = "https://www.paypal.com/donate?business=alexander.riedel%40eyedea3d.com&item_name=MalochBot"
 
+# Fussnote auf allen exportierten PDFs (Herkunftsnachweis).
+GITHUB_URL = "https://github.com/3p1cball-code/MalochBot"
+AUTHOR_NAME = "Alexander Riedel"
+PDF_CREDIT = "Erstellt mit MalochBot"
+
 DEFAULT_MODEL = os.environ.get("TRACKER_MODEL", "deepseek/deepseek-flash")
 
 BASE_DIR = Path(__file__).resolve().parent.parent

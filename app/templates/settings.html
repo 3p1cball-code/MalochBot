@@ -46,6 +46,17 @@
   </div>
 
   <div class="card stack">
+    <h2 style="margin-top:0">{{ t('settings.pdf') }}</h2>
+    <div class="field"><label>{{ t('settings.pdf_theme') }}</label>
+      <select name="pdf_theme">
+        <option value="hell" {% if (values.pdf_theme or 'hell') != 'dunkel' %}selected{% endif %}>{{ t('settings.pdf_light') }}</option>
+        <option value="dunkel" {% if values.pdf_theme == 'dunkel' %}selected{% endif %}>{{ t('settings.pdf_dark') }}</option>
+      </select>
+      <span class="small muted">{{ t('settings.pdf_hint') }}</span>
+    </div>
+  </div>
+
+  <div class="card stack">
     <h2 style="margin-top:0">{{ t('settings.sources') }}</h2>
     <p class="small muted">{{ t('settings.sources_hint') }}</p>
     <div class="field"><label>{{ t('settings.sources_label') }}</label>

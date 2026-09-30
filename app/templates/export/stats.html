@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block headmeta %}
+<div class="meta-line">
+  <span><span class="micro">Stand</span> {{ footer.generated_at }}</span>
+  <span><span class="micro">Jobs gesamt</span> {{ data.total }}</span>
+  <span><span class="micro">Bewerbungen</span> {{ data.applied }}</span>
+  <span><span class="micro">Antworten</span> {{ data.with_response }}</span>
+  <span><span class="micro">Interviews</span> {{ data.interviews }}</span>
+  {% if period_label %}<span><span class="micro">Zeitraum Liste</span> {{ period_label }}</span>{% endif %}
+</div>
+{% endblock %}
+{% block content %}
+
+<div class="grid">
+  <div class="stat" style="--sc:{{ c.muted }}"><div class="num">{{ data.total }}</div><div class="lbl">Jobs gesamt</div></div>
+  <div class="stat" style="--sc:#6366f1"><div class="num">{{ data.applied }}</div><div class="lbl">Beworben</div><div class="sub">{% if data.total %}{{ (data.applied / data.total * 100) | round | int }}% von {{ data.total }}{% endif %}</div></div>
+  <div class="stat" style="--sc:#14b8a6"><div class="num">{{ data.interviews }}</div><div class="lbl">Interviews</div><div class="sub">Antwortquote {{ data.response_rate }}%</div></div>
+  <div class="stat" style="--sc:#ef4444"><div class="num">{{ data.rejections }}</div><div class="lbl">Absagen</div><div class="sub">{% if data.applied %}{{ (data.rejections / data.applied * 100) | round | int }}% der Bewerbungen{% endif %}</div></div>
+</div>
+
+<div class="card">
+  <h2>Treffer pro Tag (Suchläufe)</h2>
+  {{ line_svg | safe }}
+</div>
+
+<div class="two">
+  <div class="card">
+    <h2>Status-Verteilung</h2>
+    {{ donut_status | safe }}
+  </div>
+  <div class="card">
+    <h2>Bewerbungs-Trichter</h2>
+    {{ funnel_html | safe }}
+  </div>
+</div>
+
+<div class="two">
+  <div class="card">
+    <h2>Bewerbungsphasen (aus Mails)</h2>
+    {{ donut_phase | safe }}
+  </div>
+  <div class="card">
+    <h2>Fit-Verteilung</h2>
+    {{ fit_html | safe }}
+    <div class="small muted" style="margin-top:3mm">Ø Fit {{ data.fit_avg }} · Median {{ data.fit_median }} · {{ data.fit_n }} bewertete Jobs</div>
+  </div>
+</div>
+
+<h2 class="sec">Einzelne Bewerbungen ({{ apps | length }}){% if period_label %} · Zeitraum {{ period_label }}{% endif %}</h2>
+<table class="apps">
+  <thead>
+    <tr>
+      <th style="width:20mm">Datum</th>
+      <th style="width:34mm">Firma</th>
+      <th>Position</th>
+      <th style="width:24mm">Ort</th>
+      <th style="width:20mm">Status</th>
+      <th style="width:19mm">Antwort</th>
+      <th style="width:11mm">Link</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for a in apps %}
+    <tr>
+      <td class="date-cell">{{ a.date | de_date }}</td>
+      <td class="co">{{ a.company }}</td>
+      <td>{{ a.title }}{% if a.remote %} <span class="muted small">· remote</span>{% endif %}</td>
+      <td>{{ a.location or '—' }}</td>
+      <td><span class="badge" style="--bc:{{ data.status_colors.get(a.status, '#71717a') }}">{{ a.status_label }}</span></td>
+      <td class="date-cell">{{ (a.response_date | de_date) if a.response_date else '—' }}</td>
+      <td class="link-cell">{% if a.link %}<a href="{{ a.link }}">Link</a>{% else %}—{% endif %}</td>
+    </tr>
+    {% endfor %}
+    {% if not apps %}
+    <tr><td colspan="7" class="muted">Keine beworbenen Stellen erfasst.</td></tr>
+    {% endif %}
+  </tbody>
+</table>
+<div class="note">
+  {% if period_label %}Die Kennzahlen und Diagramme oben beziehen sich auf den gesamten
+  Bestand; die Einzelliste ist auf den Zeitraum {{ period_label }} eingeschränkt.{% endif %}
+  Das Datum „angeschrieben am" wird aus den vorhandenen Daten abgeleitet: bei importierten
+  Altbewerbungen das übernommene Bewerbungsdatum, sonst der Statuswechsel auf „Beworben",
+  sonst das Erstellungsdatum des Anschreibens, sonst der Bewerbungsdatensatz, sonst das
+  Erfassungsdatum. Das Datum kann daher vom tatsächlichen Versanddatum abweichen.
+</div>
+{% endblock %}

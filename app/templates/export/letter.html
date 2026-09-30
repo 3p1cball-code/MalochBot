@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block headmeta %}
+<div class="meta-line">
+  {% if company %}<span><span class="micro">Unternehmen</span> {{ company }}</span>{% endif %}
+  {% if location %}<span><span class="micro">Ort</span> {{ location }}</span>{% endif %}
+</div>
+{% endblock %}
+{% block content %}
+{% if photo %}<img class="photo" src="{{ photo }}" alt="">{% endif %}
+<div class="letter-body">{{ body | safe }}</div>
+{% endblock %}

@@ -323,6 +323,16 @@ table.jobs-table th.resizing { background: var(--accent-soft); }
 .head-actions { display: flex; gap: 10px; align-items: center; flex-wrap: nowrap; }
 #search-extra { width: 260px; }
 
+/* Statistik-Export: Zeitraum-Auswahl */
+.report-range { flex-wrap: wrap; }
+.report-range .field select { min-width: 130px; }
+@media (max-width: 760px) {
+  .report-range { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+  .report-range .field { width: 100%; }
+  .report-range .field select { width: 100%; min-width: 0; }
+  .report-range .btn { grid-column: 1 / -1; width: 100%; justify-content: center; }
+}
+
 /* Einstellungen: Aktionsbuttons gleich breit nebeneinander */
 .settings-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .settings-actions .btn { width: 100%; justify-content: center; }

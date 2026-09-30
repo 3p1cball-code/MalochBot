@@ -6,6 +6,7 @@ import email
 import imaplib
 import json
 import re
+import time
 import unicodedata
 from datetime import datetime, date
 from email.header import decode_header, make_header
@@ -417,19 +418,32 @@ def run_tracking(run_id: int, model: str = "") -> dict:
     since_iso = db.get_setting("last_scan", "") or None
     mails = []
     ok_accounts = 0
+    failed_accounts = []
     for account in accounts:
-        logbus.log(run_id, "info", "Verbinde Postfach %s ..." % (account.get("email") or "?"))
-        try:
-            client = _connect(account)
-        except Exception as exc:
-            logbus.log(run_id, "error", "Postfach %s: %s" % (account.get("email") or "?", exc))
+        label = account.get("email") or "?"
+        logbus.log(run_id, "info", "Verbinde Postfach %s ..." % label)
+        client, last_exc = None, None
+        for attempt in (1, 2, 3):
+            try:
+                client = _connect(account)
+                break
+            except Exception as exc:
+                last_exc = exc
+                if attempt < 3:
+                    logbus.log(run_id, "warn", "Verbindung zu %s fehlgeschlagen (%s) - "
+                               "Versuch %d/3." % (label, exc, attempt + 1))
+                    time.sleep(3)
+        if client is None:
+            # Postfach nicht erreichbar (z. B. transienter DNS-/Netzfehler): klar
+            # markieren, aber die uebrigen Konten weiter auswerten.
+            failed_accounts.append(label)
+            logbus.log(run_id, "error", "Postfach %s NICHT erreichbar: %s" % (label, last_exc))
             continue
         ok_accounts += 1
         try:
             found = _scan(client, account, since_iso)
             mails.extend(found)
-            logbus.log(run_id, "info", "%d Mails gelesen (%s)."
-                       % (len(found), account.get("email") or "?"))
+            logbus.log(run_id, "info", "%d Mails gelesen (%s)." % (len(found), label))
         finally:
             try:
                 client.logout()
@@ -437,6 +451,11 @@ def run_tracking(run_id: int, model: str = "") -> dict:
                 pass
     if ok_accounts == 0:
         raise RuntimeError("Keines der Postfaecher war erreichbar.")
+    if failed_accounts:
+        logbus.log(run_id, "warn",
+                   "ACHTUNG: %d Postfach(er) nicht erreichbar (%s) - deren Mails wurden NICHT "
+                   "geprueft. Bitte Status aktualisieren wiederholen."
+                   % (len(failed_accounts), ", ".join(failed_accounts)))
 
     logbus.log(run_id, "info", "%d Mails gelesen (alle Postfaecher)." % len(mails))
     for i, m in enumerate(mails):
@@ -490,6 +509,12 @@ def run_tracking(run_id: int, model: str = "") -> dict:
         logbus.log(run_id, "info", "Keine statusrelevante Mail - nichts zu aktualisieren.")
 
     updated = _apply_merged(merged, run_id)
-    db.set_setting("last_scan", datetime.now().strftime("%Y-%m-%d"))
+    if not failed_accounts:
+        db.set_setting("last_scan", datetime.now().strftime("%Y-%m-%d"))
+    else:
+        # Marker NICHT vorziehen, damit das nicht erreichbare Postfach beim
+        # naechsten Lauf erneut gescannt wird.
+        logbus.log(run_id, "warn", "Scan-Marker bleibt stehen (nicht erreichbares Postfach).")
     logbus.log(run_id, "info", "%d Bewerbungen aktualisiert." % updated)
-    return {"mails": len(mails), "aktualisiert": updated}
+    return {"mails": len(mails), "aktualisiert": updated,
+            "konten_fehler": failed_accounts}

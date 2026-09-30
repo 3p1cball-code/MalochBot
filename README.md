@@ -37,6 +37,10 @@ decisions that actually matter: which job, which cover letter, which interview.
   through opencode.
 - **Live log** – every process step in real time, with logs you can debug.
 - **Analytics** – hits per search day, funnel (found → applied → response → interview → offer), fit distribution.
+- **Application report (PDF)** – one click exports the whole statistics plus the detailed list of every
+  position you applied to (date, company, role, location, status, response, link) as a styled PDF –
+  a ready proof of effort for the employment agency. A from/to month range narrows the list down
+  (the summary stays complete and is labelled as such).
 - **Two themes** – light and dark (toggle top right), minimal and calm.
 - **Help built in** – "About & Donate" explains the project goal, how to use it and security.
 - **Secure** – credentials in the OS keyring, no secrets in the repository, no telemetry.
@@ -146,7 +150,11 @@ is reachable on the network. A systemd unit lives at `deploy/malochbot.service` 
 - **Node.js 20+** and **uv** for the web-search MCPs (brave-search/fetch; see above)
 - Optional for extra job boards: **JobSpy** (see `requirements-sources.txt`). The Federal
   Employment Agency source needs no extra dependency.
-- Optional LibreOffice for PDF export of cover letters (not required — PDFs are produced in Python)
+- All PDFs (cover letters, improved documents, the application report) are produced in Python.
+  **WeasyPrint** renders the HTML export in the app's design; it needs the system libraries
+  pango/cairo/gdk-pixbuf (present on desktop Linux/macOS). If WeasyPrint is unavailable
+  (e.g. Windows without GTK), the export automatically falls back to the plain fpdf2 layout.
+  Both are installed via `requirements.txt`; no LibreOffice required.
 
 ## Architecture
 
@@ -160,9 +168,11 @@ MalochBot/
     opencode_adapter.py  Calls the opencode CLI
     providers.py     Mail provider presets
     import_legacy.py Import existing data
-    engines/         search, tracking, documents
+    exporting.py     PDF export in the web design (HTML -> WeasyPrint, fpdf fallback)
+    engines/         search, tracking, documents, stats
     engines/sources/ job-board sources (Federal Employment Agency, JobSpy)
     templates/       UI
+    templates/export/ PDF layouts (report, cover letter, document)
     static/          CSS/JS
   data/              Runtime data (DB, uploads, logs) – not in the repo
 ```

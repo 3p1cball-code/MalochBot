@@ -53,11 +53,18 @@ Regeln:
   "Application Update". Wenn dazu kein bekannter Job passt (job_id null), fuelle
   company und title, damit die Anwendung einen neuen Job anlegen kann.
 - ABSAGE hat Vorrang und wird am haeufigsten uebersehen: Pruefe bei JEDER Mail,
-  ob sie eine Absage ist. Signale: "leider", "andere Kandidaten", "Stelle besetzt",
-  "nicht weiter", "nicht beruecksichtigen", "entschieden uns fuer", "Thank you for
-  your interest" im Absage-Kontext, "Application Update". Solche Mails IMMER als
-  "Absage" markieren, auch wenn der Ton freundlich ist. "leider" allein ohne
-  Absagebezug ist keine Absage.
+  ob sie eine Absage ist. Auch freundlich formulierte Absagen sind Absagen.
+  DEUTSCHE Signale: "leider", "andere Kandidaten", "Stelle besetzt", "nicht weiter",
+  "nicht beruecksichtigen", "entschieden uns fuer", "nicht in der engeren Auswahl",
+  "wurde anderweitig besetzt", "Application Update".
+  ENGLISCHE Signale: "another candidate", "other candidates", "candidate was chosen",
+  "chosen for the role", "we decided to move forward with", "will not be moving
+  forward", "not selected", "unsuccessful", "unfortunately", "we regret", "position
+  has been filled", "decided not to proceed". Solche Mails IMMER als "Absage"
+  markieren, auch wenn der Ton freundlich ist und "thank you"/"all the best" enthaelt.
+  Wichtig: eine Absage kann denselben Betreff wie vorherige Einladungen haben (z. B.
+  "Re: Invitation for the initial interview") - der Betreff allein sagt nichts, der
+  BODY entscheidet. "leider" allein ohne Absagebezug ist keine Absage.
 - Betreffen MEHRERE Mails denselben Job, markiere JEDE maessgebliche Mail einzeln
   (nicht nur die erste). Die Anwendung nimmt spaeter automatisch die neueste.
 

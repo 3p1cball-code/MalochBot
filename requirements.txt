@@ -7,3 +7,7 @@ cryptography>=42
 pypdf>=4
 fpdf2>=2.7
 pillow>=10
+# PDF-Export im Design der Webseite (HTML -> PDF). Braucht auf Linux/macOS die
+# System-Bibliotheken pango/cairo/gdk-pixbuf (auf Desktop-Distributionen
+# vorhanden). Fehlen sie, faellt der Export automatisch auf fpdf2 zurueck.
+weasyprint>=60
