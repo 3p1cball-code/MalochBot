@@ -128,8 +128,10 @@ def _documents_and_context() -> tuple:
     for doc in chosen:
         text = doc_engine.extract_text(doc["path"])
         if text and not text.startswith("["):
-            parts.append("### %s (%s)\n%s" % (doc["name"], doc["kind"], text[:2500]))
-    context_text = "\n\n".join(parts)[:6000]
+            parts.append("### %s (%s)\n%s" % (doc["name"], doc["kind"], text))
+    # Kein kuenstliches Kuerzen hier: extract_text respektiert das Limit aus den
+    # Einstellungen (0 = unbegrenzt), und der Prompt geht per stdin an opencode.
+    context_text = "\n\n".join(parts)
     docs_list = "\n".join("- %s (%s)" % (d["name"], d["kind"]) for d in docs) or "(keine)"
     return context_text, docs_list
 

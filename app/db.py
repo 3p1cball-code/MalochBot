@@ -164,6 +164,7 @@ DEFAULT_SETTINGS = {
     "pdf_theme": "hell",
     "report_from_month": "",
     "report_to_month": "",
+    "doc_text_limit": "0",
     "fit_threshold": "0",
     "search_doc_ids": "",
     "home_city": "Berlin",

@@ -22,6 +22,10 @@
       </select>
       <span class="small muted">Live vom System: alle Modelle, die opencode hier kennt ({{ models|length }}).</span>
     </div>
+    <div class="field"><label>{{ t('settings.doc_limit') }}</label>
+      <input type="number" name="doc_text_limit" min="0" value="{{ values.doc_text_limit or 0 }}">
+      <span class="small muted">{{ t('settings.doc_limit_hint') }}</span>
+    </div>
   </div>
 
   <div class="card stack">

@@ -548,7 +548,7 @@ def settings(request: Request, saved: str = ""):
 async def settings_save(request: Request):
     form = await request.form()
     for key in ("model", "profile", "preferences", "search_extra", "fit_threshold",
-                "home_city", "mail_since", "pdf_theme",
+                "home_city", "mail_since", "pdf_theme", "doc_text_limit",
                 "search_terms", "source_results", "source_max_age_days",
                 "source_radius_km", "jobspy_sites", "jobspy_country",
                 "jobspy_hours_old", "jobspy_location"):

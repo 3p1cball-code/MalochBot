@@ -107,25 +107,42 @@ the reference letter. Maximum one page. Return only the cover letter.
 """
 
 
-def extract_text(path: str) -> str:
+def _doc_text_limit() -> int:
+    """Zeichenlimit je Dokument aus den Einstellungen (0 = unbegrenzt)."""
+    try:
+        return max(0, int(db.get_setting("doc_text_limit", "0") or "0"))
+    except (TypeError, ValueError):
+        return 0
+
+
+def extract_text(path: str, limit: int = None) -> str:
+    """Text aus PDF/DOCX/TXT extrahieren.
+
+    `limit` = maximale Zeichen (0/None aus Einstellungen = unbegrenzt). Der Prompt
+    wird per stdin an opencode uebergeben, daher gibt es keine CLI-Laengengrenze.
+    """
+    if limit is None:
+        limit = _doc_text_limit()
     ext = os.path.splitext(path)[1].lower()
+    text = None
     try:
         if ext == ".pdf":
             from pypdf import PdfReader
             reader = PdfReader(path)
-            return "\n".join((page.extract_text() or "") for page in reader.pages)[:20000]
-        if ext in (".txt", ".md", ".markdown", ".csv"):
-            return open(path, encoding="utf-8", errors="replace").read()[:20000]
-        if ext == ".docx":
+            text = "\n".join((page.extract_text() or "") for page in reader.pages)
+        elif ext in (".txt", ".md", ".markdown", ".csv"):
+            text = open(path, encoding="utf-8", errors="replace").read()
+        elif ext == ".docx":
             import re
             import zipfile
             with zipfile.ZipFile(path) as z:
                 xml = z.read("word/document.xml").decode("utf-8", "replace")
-            text = re.sub(r"<[^>]+>", " ", xml)
-            return re.sub(r"\s+", " ", text)[:20000]
+            text = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", xml))
     except Exception as exc:
         return "[Text konnte nicht gelesen werden: %s]" % exc
-    return "[Dateityp nicht extrahierbar - bitte Inhalt manuell pruefen.]"
+    if text is None:
+        return "[Dateityp nicht extrahierbar - bitte Inhalt manuell pruefen.]"
+    return text[:limit] if limit and limit > 0 else text
 
 
 def resolve_path(doc) -> str:
@@ -215,11 +232,11 @@ def _context_texts() -> tuple:
     for doc in cv_docs[:2]:
         text = extract_text(resolve_path(doc))
         if text and not text.startswith("["):
-            cv_text = (cv_text + "\n\n" + text)[:4000]
+            cv_text = (cv_text + "\n\n" + text)
     for doc in ref_docs[:1]:
         text = extract_text(resolve_path(doc))
         if text and not text.startswith("["):
-            ref_text = text[:2500]
+            ref_text = text
     return cv_text.strip(), ref_text.strip()
 
 
