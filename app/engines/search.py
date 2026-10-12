@@ -18,7 +18,7 @@ import re
 
 from .. import db, logbus
 from .. import opencode_adapter as oc
-from . import sources
+from . import sources, urlfix
 
 WEB_PROMPT = """Du bist ein Recherche-Assistent fuer die Jobsuche. Nutze die Websuche.
 
@@ -46,6 +46,12 @@ Aufgabe:
   nicht aelter als ~2 Monate, Anzeige beim Pruefen noch aktiv).
 - Keine Duplikate zu den bereits bekannten Jobs.
 - Nimm nur Stellen mit einem Fit-Score von mindestens {{THRESHOLD}} auf.
+- title: die EXAKTE Rollenbezeichnung der Anzeige – nicht umformulieren oder zusammenfassen.
+- url: die DIREKTE Adresse der konkreten Stellenanzeige (die Seite, auf der die Stelle
+  selbst ausgeschrieben ist). Keine Suchergebnis-, Kategorie-, Firmenprofil- oder
+  Karriere-Uebersichtsseiten (z. B. kein Glassdoor "...-jobs-SRCH_...", kein
+  Indeed ".../q-...-jobs.html"). Ist kein Direktlink auffindbar, lass url leer und
+  nenne in company_url die Firmen-Karriereseite.
 - rationale: 3-5 Saetze, warum die Stelle gut passt (konkrete Anknuepfungspunkte).
 - description: 5-8 Saetze mit Aufgaben, Anforderungen, Team/Kontext und eingesetzten
   Tools – so detailliert, wie es die Anzeige hergibt; nichts erfinden.
@@ -239,6 +245,7 @@ def _save_candidates(candidates: list, scores: dict, run_id: int) -> tuple:
             cand["description"] = (cand.get("description") or "")[:2000]
         cand["status"] = "gefunden"
         cand["run_id"] = run_id
+        urlfix.apply(cand)
         _, created = db.upsert_job(cand)
         if created:
             added += 1
@@ -281,6 +288,7 @@ def _web_search(run_id: int, model: str, extra: str, profile: str, preferences: 
         job["run_id"] = run_id
         job["language"] = job.get("lang") or job.get("language") or ""
         job.setdefault("status", "gefunden")
+        urlfix.apply(job)
         _, created = db.upsert_job(job)
         if created:
             added += 1
