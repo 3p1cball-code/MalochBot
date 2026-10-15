@@ -11,7 +11,7 @@ import re
 import subprocess
 
 from . import config, db, logbus
-from . import opencode_adapter as oc
+from . import llm as oc
 
 PROMPT = """Du hilfst, eine Job-Datenbank zu befuellen.
 

@@ -9,18 +9,34 @@
 <form method="post" action="/settings" class="stack">
   <div class="card stack">
     <h2 style="margin-top:0">LLM</h2>
-    <div class="field"><label>{{ t('settings.model') }}</label>
+    <div class="field"><label>{{ t('settings.backend') }}</label>
+      <select name="llm_backend" id="llm-backend" onchange="mbLlmBackend(this)">
+        <option value="opencode" {% if llm_backend != 'claude' %}selected{% endif %}>{{ t('settings.backend_opencode') }}</option>
+        <option value="claude" {% if llm_backend == 'claude' %}selected{% endif %}>{{ t('settings.backend_claude') }}</option>
+      </select>
+      <span class="small muted">{{ t('settings.backend_hint') }}</span>
+    </div>
+    <div class="field" data-backend="opencode"><label>{{ t('settings.model_opencode') }}</label>
       <select name="model">
-        {% if values.model and values.model not in models %}
+        {% if values.model and values.model not in models_opencode %}
         <option value="{{ values.model }}" selected>{{ values.model }} (aktuell, nicht in Liste)</option>
         {% endif %}
-        {% for provider, list in models_by_provider.items() %}
+        {% for provider, list in models_opencode_by_provider.items() %}
         <optgroup label="{{ provider }}">
           {% for m in list %}<option value="{{ m }}" {% if values.model == m %}selected{% endif %}>{{ m }}</option>{% endfor %}
         </optgroup>
         {% endfor %}
       </select>
-      <span class="small muted">Live vom System: alle Modelle, die opencode hier kennt ({{ models|length }}).</span>
+      <span class="small muted">{{ t('settings.models_live') }} ({{ models_opencode|length }})</span>
+    </div>
+    <div class="field" data-backend="claude"><label>{{ t('settings.model_claude') }}</label>
+      <select name="claude_model">
+        {% if values.claude_model and values.claude_model not in models_claude %}
+        <option value="{{ values.claude_model }}" selected>{{ values.claude_model }} (aktuell, nicht in Liste)</option>
+        {% endif %}
+        {% for m in models_claude %}<option value="{{ m }}" {% if values.claude_model == m %}selected{% endif %}>{{ m }}</option>{% endfor %}
+      </select>
+      <span class="small muted">{{ t('settings.model_claude_hint') }}</span>
     </div>
     <div class="field"><label>{{ t('settings.doc_limit') }}</label>
       <input type="number" name="doc_text_limit" min="0" value="{{ values.doc_text_limit or 0 }}">
@@ -199,6 +215,14 @@ window.MB_MAIL_MSG = {
   delete_confirm: {{ t('settings.mail_delete_confirm')|tojson }},
   untitled: {{ t('settings.mail_untitled')|tojson }}
 };
+
+function mbLlmBackend(sel) {
+  var backend = sel.value;
+  document.querySelectorAll('.field[data-backend]').forEach(function (el) {
+    el.style.display = (el.getAttribute('data-backend') === backend) ? '' : 'none';
+  });
+}
+mbLlmBackend(document.getElementById('llm-backend'));
 
 function mbMailProvider(sel) {
   var acc = sel.closest('.mail-acc');

@@ -2,15 +2,13 @@
 waehlbares Modell. Die Ausgabe wird zeilenweise in den Live-Log gestreamt.
 """
 
-import json
 import re
 import shutil
 import subprocess
 import threading
 
 from . import config, logbus
-
-ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
+from .llm_common import ANSI, extract_json  # noqa: F401 (extract_json re-exportiert)
 
 
 def available() -> bool:
@@ -94,51 +92,3 @@ def clean_text(text: str) -> str:
     while out and not out[-1].strip():
         out.pop()
     return "\n".join(out)
-
-
-def extract_json(text: str):
-    """Robuste JSON-Extraktion: findet das gueltige Modell-Objekt mit 'jobs'/'mails'.
-
-    Die opencode-Ausgabe enthaelt auch die angehaengte Kontextdatei (ebenfalls mit
-    'jobs'/'mails', aber ohne 'phase'/'job_id') und Tool-Aufrufe wie {"query": ...}.
-    Deshalb wird bevorzugt das Objekt gewaehlt, dessen Eintraege 'phase' oder
-    'job_id' tragen (= Modellantwort), vorzugsweise das letzte davon.
-    """
-    text = ANSI.sub("", text or "")
-    decoder = json.JSONDecoder()
-    objects = []
-    index = 0
-    while True:
-        start = text.find("{", index)
-        if start == -1:
-            break
-        try:
-            obj, end = decoder.raw_decode(text[start:])
-        except Exception:
-            index = start + 1
-            continue
-        objects.append(obj)
-        index = start + end
-
-    def _model_shaped(obj) -> bool:
-        if not isinstance(obj, dict):
-            return False
-        for key in ("jobs", "mails"):
-            lst = obj.get(key)
-            if isinstance(lst, list):
-                for item in lst:
-                    if isinstance(item, dict) and ("phase" in item or "job_id" in item):
-                        return True
-        return False
-
-    candidates = [o for o in objects
-                  if isinstance(o, dict) and ("jobs" in o or "mails" in o)]
-    shaped = [o for o in candidates if _model_shaped(o)]
-    if shaped:
-        return shaped[-1]
-    if candidates:
-        return candidates[-1]
-    for obj in objects:
-        if isinstance(obj, list) and obj and isinstance(obj[0], dict) and "company" in obj[0]:
-            return {"jobs": obj}
-    return None

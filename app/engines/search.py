@@ -17,7 +17,7 @@ import json
 import re
 
 from .. import db, logbus
-from .. import opencode_adapter as oc
+from .. import llm as oc
 from . import sources, urlfix
 
 WEB_PROMPT = """Du bist ein Recherche-Assistent fuer die Jobsuche. Nutze die Websuche.

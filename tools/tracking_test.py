@@ -11,7 +11,7 @@ import json
 import os
 import sys
 
-from app import auth, config, db
+from app import auth, config, db, llm
 from app.engines import tracking as t
 from app.engines import tracking_mail as tm
 
@@ -26,7 +26,7 @@ def main():
     args = ap.parse_args()
 
     db.init_db()
-    model = args.model or db.get_setting("model", config.DEFAULT_MODEL)
+    model = args.model or llm.active_model()
     jobs = db.query("SELECT id, company, title FROM jobs")
 
     client = t._connect()

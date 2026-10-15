@@ -25,7 +25,8 @@ from .engines import documents as documents_engine
 from .engines import stats as stats_engine
 from . import exporting
 from . import import_legacy
-from . import opencode_adapter
+from . import opencode_adapter, claude_adapter
+from . import llm
 
 config.ensure_dirs()
 auth.init_accounts_db()
@@ -111,7 +112,7 @@ def _ctx(request: Request, **kwargs):
         "doc_labels": config.doc_labels(lang),
         "lang": lang,
         "languages": i18n.LANGUAGES,
-        "model": db.get_setting("model", config.DEFAULT_MODEL),
+        "model": llm.active_model(),
         "home_city": db.get_setting("home_city", "Berlin"),
         "build_id": BUILD_ID,
         "setup_done": db.get_setting("setup_done", "0") == "1",
@@ -122,7 +123,7 @@ def _ctx(request: Request, **kwargs):
 
 
 def start_background(kind: str, func) -> int:
-    model = db.get_setting("model", config.DEFAULT_MODEL)
+    model = llm.active_model()
     run_id = logbus.start(kind, model)
     # Benutzerkontext in den Hintergrund-Thread uebernehmen, damit der Lauf
     # in der Datenbank/den Unterlagen des richtigen Benutzers arbeitet.
@@ -259,7 +260,7 @@ def home(request: Request):
     sources = sorted({r["source"] for r in rows if r["source"]})
     return tr("jobs.html", _ctx(
         request, jobs_json=json.dumps(rows, ensure_ascii=False),
-        sources=sources, opencode_ok=opencode_adapter.available(),
+        sources=sources, llm_ok=llm.available(), llm_label=llm.backend_label(),
         counts=_counts(),
         last_update=_last_update_summary(),
         fit_threshold=int(db.get_setting("fit_threshold", "0") or 0)))
@@ -645,11 +646,12 @@ def documents_crop_apply(doc_id: int, x: int = Form(...), y: int = Form(...),
 @app.get("/settings", response_class=HTMLResponse)
 def settings(request: Request, saved: str = ""):
     values = db.all_settings()
-    models = opencode_adapter.list_models()
-    models_by_provider = {}
-    for name in models:
+    models_opencode = opencode_adapter.list_models()
+    models_opencode_by_provider = {}
+    for name in models_opencode:
         provider = name.split("/", 1)[0]
-        models_by_provider.setdefault(provider, []).append(name)
+        models_opencode_by_provider.setdefault(provider, []).append(name)
+    models_claude = claude_adapter.list_models()
     documents = db.query("SELECT id, name, kind FROM documents ORDER BY kind, name")
     accounts = db.list_mail_accounts()
     mail_has_pw = {a["id"]: bool(secrets.store.get("mail_password_%s" % a["id"], ""))
@@ -658,7 +660,10 @@ def settings(request: Request, saved: str = ""):
     return tr("settings.html", _ctx(
         request, values=values, mail_providers=providers.PROVIDERS,
         mail_accounts=accounts, mail_has_pw=mail_has_pw,
-        models=models, models_by_provider=models_by_provider,
+        models_opencode=models_opencode,
+        models_opencode_by_provider=models_opencode_by_provider,
+        models_claude=models_claude,
+        llm_backend=llm.backend(), llm_label=llm.backend_label(),
         secret_backend=secrets.store.backend(),
         jobspy_ok=jobspy_source.available(),
         saved=saved))
@@ -667,7 +672,8 @@ def settings(request: Request, saved: str = ""):
 @app.post("/settings")
 async def settings_save(request: Request):
     form = await request.form()
-    for key in ("model", "profile", "preferences", "search_extra", "fit_threshold",
+    for key in ("llm_backend", "model", "claude_model", "profile", "preferences",
+                "search_extra", "fit_threshold",
                 "home_city", "mail_since", "pdf_theme", "doc_text_limit",
                 "search_terms", "source_results", "source_max_age_days",
                 "source_radius_km", "jobspy_sites", "jobspy_country",
@@ -832,7 +838,7 @@ async def api_events(run_id: int):
 def about(request: Request):
     return tr("about.html", _ctx(
         request, secret_backend=secrets.store.backend(),
-        opencode_ok=opencode_adapter.available()))
+        llm_ok=llm.available(), llm_label=llm.backend_label()))
 
 
 @app.post("/api/jobs/{job_id}/cover-letter")
@@ -913,11 +919,12 @@ def health():
     data = {
         "app": config.APP_NAME, "version": config.VERSION,
         "build": BUILD_ID, "opencode": opencode_adapter.available(),
+        "llm_backend": llm.backend(), "llm": llm.available(),
         "secret_backend": secrets.store.backend(),
         "auth": bool(user),
     }
     if user:
         data["db"] = str(config.DB_PATH)
-        data["model"] = db.get_setting("model", config.DEFAULT_MODEL)
+        data["model"] = llm.active_model()
         data["user"] = user.get("username", "")
     return JSONResponse(data)

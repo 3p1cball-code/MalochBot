@@ -31,6 +31,14 @@ else
   echo "         Bitte manuell installieren: https://opencode.ai/docs"
 fi
 
+# Zweiter, optionaler Weg: Claude Code mit Claude-Abo (Pro/Max) statt opencode.
+if command -v claude >/dev/null 2>&1; then
+  echo "Claude Code: $(command -v claude) (in den Einstellungen als LLM-Backend wählbar)"
+else
+  echo "Optional: Claude Code als zweites Backend (Claude-Abo, keine zusätzlichen API-Tokens)."
+  echo "          Installieren: https://docs.claude.com/en/docs/claude-code  - danach einmal 'claude' zum Anmelden."
+fi
+
 echo "Erstelle virtuelle Umgebung ..."
 "$PY" -m venv .venv
 # shellcheck disable=SC1091

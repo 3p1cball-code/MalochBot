@@ -10,7 +10,7 @@ Diese Datei schreibt NICHT in die Datenbank - sie liefert nur Vorschlaege.
 import json
 
 from .. import config, logbus
-from .. import opencode_adapter as oc
+from .. import llm as oc
 from . import tracking as t
 
 MAIL_PROMPT = """Du wertest eine Mailbox aus.

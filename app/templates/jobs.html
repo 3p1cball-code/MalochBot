@@ -36,9 +36,9 @@
 </div>
 {% endif %}
 
-{% if not opencode_ok %}
+{% if not llm_ok %}
 <div class="banner" style="background:rgba(220,38,38,.12);border-color:var(--err);color:var(--err)">
-  <span><strong>opencode</strong> {{ "not found – analysis disabled." if lang == "en" else "wurde nicht gefunden – Analysen sind deaktiviert." }}</span>
+  <span><strong>{{ llm_label }}</strong> {{ t('jobs.llm_missing') }}</span>
 </div>
 {% endif %}
 

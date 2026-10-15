@@ -10,7 +10,7 @@ import subprocess
 
 from .. import config, db, logbus
 from .. import exporting
-from .. import opencode_adapter as oc
+from .. import llm as oc
 
 EVAL_PROMPT = """Bewerte das folgende Dokument kurz und konkret auf Deutsch.
 

@@ -16,6 +16,15 @@ if errorlevel 1 (
   )
 )
 
+REM Zweiter, optionaler Weg: Claude Code mit Claude-Abo (Pro/Max) statt opencode.
+where claude >nul 2>nul
+if errorlevel 1 (
+  echo Optional: Claude Code als zweites Backend ^(Claude-Abo, keine zusaetzlichen API-Tokens^).
+  echo   Installieren: https://docs.claude.com/en/docs/claude-code  - danach einmal "claude" zum Anmelden.
+) else (
+  echo Claude Code gefunden - in den Einstellungen als LLM-Backend waehlbar.
+)
+
 echo Erstelle virtuelle Umgebung ...
 %PY% -m venv .venv
 call .venv\Scripts\activate.bat

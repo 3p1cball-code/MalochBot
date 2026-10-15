@@ -210,17 +210,30 @@ aus den vorhandenen Daten abgeleitet: bei importierten Altbewerbungen das übern
 Bewerbungsdatum, sonst Statuswechsel → Anschreiben-Dateidatum → Bewerbungsdatensatz →
 Erfassung.
 
-## 7. Integration der opencode-CLI
+## 7. Integration der LLM-CLIs (opencode / Claude Code)
 
-Alle Analysen laufen über `opencode run -m <modell>`. Die Ausgabe der CLI ist nicht
-maschinenlesbar garantiert: Sie enthält Statuszeilen, Werkzeugaufrufe und erst am Ende
-das Ergebnis. Der Adapter parst daher **das letzte gültige JSON-Objekt** aus der Ausgabe
+Alle Analysen laufen über eine schmale **Backend-Fassade** (`app/llm.py`). Die Engines
+sprechen ausschließlich `llm.run(...)`/`llm.clean_text(...)`/`llm.extract_json(...)` an;
+welches Backend dahinter steht, entscheidet die Einstellung `llm_backend`:
+
+- **opencode** (`app/opencode_adapter.py`, Standard): `opencode run -m <modell> --dir <dir>
+  [-f <datei>]`, Prompt über stdin. Modellliste zur Laufzeit aus `opencode models`.
+- **Claude Code** (`app/claude_adapter.py`, optional): `claude -p --model <alias>
+  --output-format text`, Prompt über stdin; Anhänge werden in den Prompt eingebettet
+  (die Dateiwerkzeuge sind bewusst aus). Die Websuche nutzt die eingebauten Werkzeuge
+  `WebSearch`/`WebFetch`; alle übrigen Werkzeuge und MCP-Server sind per
+  `--tools`/`--disallowedTools` abgeschaltet, damit der unbeaufsichtigte Lauf weder hängt
+  noch das System verändert. Gedacht für Nutzer mit Claude-Abo (Pro/Max): einmalig
+  `claude` anmelden, danach läuft es über den Plan – ohne zusätzlichen API-Key.
+  Modell-Aliase: `sonnet`, `opus`, `haiku`.
+
+Beide Ausgaben sind nicht maschinenlesbar garantiert: Sie enthalten Statuszeilen,
+Werkzeugaufrufe und erst am Ende das Ergebnis. Die gemeinsame Funktion
+`llm_common.extract_json` parst daher **das letzte gültige JSON-Objekt** mit `jobs`/`mails`
 statt naiv vom ersten bis zum letzten Klammerzeichen zu lesen — so werden Werkzeugaufrufe
-wie `{"query": ...}` zuverlässig ignoriert. Schlägt die Auswertung fehl, bleibt der
-letzte gültige Stand erhalten.
-
-Das Modell ist frei wählbar; die Auswahlliste wird zur Laufzeit live aus
-`opencode models` erzeugt, nach Anbieter gruppiert.
+wie `{"query": ...}` und die angehängte Kontextdatei zuverlässig ignoriert. Schlägt die
+Auswertung fehl, bleibt der letzte gültige Stand erhalten. Das jeweils aktive Modell
+liefert `llm.active_model()` (`model` für opencode, `claude_model` für Claude Code).
 
 ## 8. Oberfläche
 
@@ -256,7 +269,8 @@ hervorgehobene Download-Button. Die vollständigen Protokolle bleiben im Reiter 
 ## 10. Installation und Dauerbetrieb
 
 Für Linux und Windows liegen Installer bei, die eine virtuelle Umgebung anlegen, die
-Abhängigkeiten installieren, `opencode` prüfen und die Datenbank initialisieren.
+Abhängigkeiten installieren, `opencode` prüfen (Claude Code wird als optionales zweites
+Backend nur erkannt und gemeldet) und die Datenbank initialisieren.
 
 Die **Bundesagentur-Quelle benötigt keine zusätzliche Abhängigkeit** (nur die
 Python-Standardbibliothek). Die **optionalen JobSpy-Boards** (LinkedIn/Indeed/…) werden
@@ -292,7 +306,10 @@ Oberfläche.
 ## 12. Erweiterbarkeit
 
 - **Neue Mail-Anbieter:** ein Eintrag in `providers.py` genügt (Label, Server, Hinweis).
-- **Neue Modelle:** erscheinen automatisch, sobald opencode sie kennt.
+- **Neue Modelle:** beim opencode-Backend erscheinen sie automatisch, sobald opencode sie
+  kennt; beim Claude-Code-Backend werden die Aliase in `claude_adapter.MODELS` gepflegt.
+- **Neues LLM-Backend:** ein weiteres Modul mit `available()`, `list_models()`, `run()`,
+  `clean_text()` genügt; die Auswahl in `app/llm.py` (und in den Einstellungen) ergänzen.
 - **Neue Engines:** folgen dem Muster „Prompt → opencode → JSON → Datenbank" und lassen
   sich als weitere Buttons einbinden.
 - **Neue Jobbörsen:** ein Modul in `app/engines/sources/` mit einer Funktion

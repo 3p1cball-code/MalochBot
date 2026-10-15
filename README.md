@@ -6,7 +6,8 @@
 
 MalochBot is a local, open-source web app that bundles **job search, application
 tracking and career documents** in one place. All analysis runs through
-[opencode](https://opencode.ai) with a freely chosen LLM.
+[opencode](https://opencode.ai) or [Claude Code](https://claude.com/claude-code)
+with a freely chosen LLM.
 
 ## Project goal — job hunting, thought through
 
@@ -14,7 +15,7 @@ Job hunting is draining: postings spread across many portals, applications by em
 replies buried in your inbox, documents in several folders. MalochBot takes that whole
 process seriously and brings it together in **one** place — **locally on your own
 machine**, no cloud required. Search, tracking and documents share the same data, and
-every assessment runs through opencode with a freely chosen LLM. The goal is not to
+every assessment runs through opencode or Claude Code with a freely chosen LLM. The goal is not to
 replace the human, but to **automate the routine** so more time is left for the
 decisions that actually matter: which job, which cover letter, which interview.
 
@@ -33,8 +34,9 @@ decisions that actually matter: which job, which cover letter, which interview.
   assessed by the LLM.
 - **Documents** – keep CV, references, work samples and reference cover letters in one
   place, have them reviewed/improved by the LLM and generate cover letters.
-- **Model choice** – dropdown of every model available in opencode; analysis always runs
-  through opencode.
+- **Model choice** – two interchangeable LLM backends: **opencode** (dropdown of every
+  model the system knows) or **Claude Code** (runs on your Claude Pro/Max plan – no extra
+  API tokens). Selection lives in Settings.
 - **Live log** – every process step in real time, with logs you can debug.
 - **Analytics** – hits per search day, funnel (found → applied → response → interview → offer), fit distribution.
 - **Application report (PDF)** – one click exports the whole statistics plus the detailed list of every
@@ -96,6 +98,15 @@ The installers check/install **opencode**, set up the **web search (MCP)** serve
 a virtual environment and initialise the database. Then, in the browser under **Settings**,
 pick a model and connect your mailbox (one-time setup).
 
+**Alternative backend — Claude Code (Claude plan).** Instead of opencode you can use the
+[Claude Code](https://claude.com/claude-code) CLI, which draws on your **Claude Pro/Max
+subscription** – no separate API key, no opencode install. Install Claude Code, run
+`claude` once in a terminal to sign in (`/login`), and in **Settings → LLM** switch the
+**backend** to *Claude Code*. The model dropdown then offers the aliases `sonnet`, `opus`
+and `haiku`. Web search for the job search runs through Claude Code's built-in
+`WebSearch`/`WebFetch` tools, so **no Brave key is needed** with this backend. Everything
+else (mail, documents, cover letters) works identically.
+
 ### Job-board sources
 
 Next to the model's web search, the search also queries job boards directly (see
@@ -120,6 +131,8 @@ no longer discards the board results.
 The web search adds breadth beyond the boards. For that, opencode needs the MCP servers
 **brave-search** (web search) and **fetch**. Without a Brave key the web search stays
 disabled, but the **Federal Employment Agency source still runs** (it needs no MCP).
+(This whole section is only about the **opencode** backend. With the **Claude Code**
+backend, web search uses Claude Code's built-in tools and needs no MCP servers or key.)
 
 - `scripts/setup_opencode_mcp.sh` (Linux/macOS) or `scripts/setup_opencode_mcp.bat`
   (Windows) register the MCP servers in `~/.config/opencode/opencode.json` — the installer
@@ -169,8 +182,10 @@ python -m app.auth migrate <name>      # moves the root DB/docs/secrets into use
 ## Requirements
 
 - Python 3.10+
-- [opencode](https://opencode.ai) (the installers try to install it)
-- **Node.js 20+** and **uv** for the web-search MCPs (brave-search/fetch; see above)
+- **One** LLM backend: [opencode](https://opencode.ai) (the installers try to install it)
+  **or** [Claude Code](https://claude.com/claude-code) (uses your Claude plan)
+- **Node.js 20+** and **uv** for the web-search MCPs of the opencode backend
+  (brave-search/fetch; see above) — not needed with the Claude Code backend
 - Optional for extra job boards: **JobSpy** (see `requirements-sources.txt`). The Federal
   Employment Agency source needs no extra dependency.
 - All PDFs (cover letters, improved documents, the application report) are produced in Python.
@@ -190,6 +205,9 @@ MalochBot/
     secrets.py       Secret store (keyring / encrypted file, per user)
     logbus.py        Live logs + persistence
     opencode_adapter.py  Calls the opencode CLI
+    claude_adapter.py    Calls the Claude Code CLI (plan/OAuth, built-in web tools)
+    llm.py           Backend switch (opencode / Claude Code) + active model
+    llm_common.py    Shared ANSI cleaning + robust JSON extraction
     providers.py     Mail provider presets
     import_legacy.py Import existing data
     exporting.py     PDF export in the web design (HTML -> WeasyPrint, fpdf fallback)

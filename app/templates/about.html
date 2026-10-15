@@ -38,7 +38,7 @@
     <h2 style="margin-top:0">{{ t('about.security_title') }}</h2>
     <p>{{ t('about.security') }}</p>
     <p class="small muted">Secret-Store: <strong>{{ secret_backend }}</strong> ·
-      opencode: {{ "OK" if opencode_ok else "not found" }}</p>
+      {{ llm_label }}: {{ "OK" if llm_ok else "not found" }}</p>
   </div>
   <div class="card">
     <h2 style="margin-top:0">{{ t('about.donate_title') }}</h2>
