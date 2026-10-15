@@ -32,11 +32,20 @@ def _try_keyring():
 class SecretStore:
     def __init__(self):
         self._keyring = _try_keyring()
-        self._cache = None
+        # Cache je Benutzerordner, damit sich Benutzer nicht vermischen.
+        self._cache = {}
+
+    def _service(self) -> str:
+        """Keyring-Dienstname je Benutzer (sonst kollidieren gleiche Schluessel)."""
+        user = config.current_user()
+        if user and user.get("username"):
+            return "%s:%s" % (SERVICE, user["username"])
+        return SERVICE
 
     def _master_key(self) -> bytes:
+        service = self._service()
         if self._keyring:
-            value = self._keyring.get_password(SERVICE, "masterkey")
+            value = self._keyring.get_password(service, "masterkey")
             if value:
                 return base64.urlsafe_b64decode(value.encode())
         if config.KEY_FILE.exists():
@@ -44,8 +53,9 @@ class SecretStore:
         from cryptography.fernet import Fernet
         key = Fernet.generate_key()
         if self._keyring:
-            self._keyring.set_password(SERVICE, "masterkey", base64.urlsafe_b64encode(key).decode())
+            self._keyring.set_password(service, "masterkey", base64.urlsafe_b64encode(key).decode())
         else:
+            config.ensure_dirs()
             config.KEY_FILE.write_bytes(base64.urlsafe_b64encode(key))
             os.chmod(config.KEY_FILE, stat.S_IRUSR | stat.S_IWUSR)
         return key
@@ -54,22 +64,26 @@ class SecretStore:
         from cryptography.fernet import Fernet
         return Fernet(self._master_key())
 
+    def _cache_key(self) -> str:
+        return str(config.SECRET_FILE)
+
     def _load(self) -> dict:
-        if self._cache is not None:
-            return self._cache
+        cache_key = self._cache_key()
+        if cache_key in self._cache:
+            return self._cache[cache_key]
+        data = {}
         if config.SECRET_FILE.exists():
             try:
-                data = self._fernet().decrypt(config.SECRET_FILE.read_bytes())
-                self._cache = json.loads(data.decode())
+                raw = self._fernet().decrypt(config.SECRET_FILE.read_bytes())
+                data = json.loads(raw.decode())
             except Exception:
-                self._cache = {}
-        else:
-            self._cache = {}
-        return self._cache
+                data = {}
+        self._cache[cache_key] = data
+        return data
 
     def _save(self) -> None:
         config.ensure_dirs()
-        payload = json.dumps(self._cache or {}).encode()
+        payload = json.dumps(self._cache.get(self._cache_key(), {})).encode()
         config.SECRET_FILE.write_bytes(self._fernet().encrypt(payload))
         try:
             os.chmod(config.SECRET_FILE, stat.S_IRUSR | stat.S_IWUSR)
@@ -79,7 +93,7 @@ class SecretStore:
     def get(self, key: str, default: str = "") -> str:
         if self._keyring:
             try:
-                value = self._keyring.get_password(SERVICE, key)
+                value = self._keyring.get_password(self._service(), key)
                 if value is not None:
                     return value
             except Exception:
@@ -89,7 +103,7 @@ class SecretStore:
     def set(self, key: str, value: str) -> None:
         if self._keyring:
             try:
-                self._keyring.set_password(SERVICE, key, value)
+                self._keyring.set_password(self._service(), key, value)
                 return
             except Exception:
                 pass
@@ -99,7 +113,7 @@ class SecretStore:
     def delete(self, key: str) -> None:
         if self._keyring:
             try:
-                self._keyring.delete_password(SERVICE, key)
+                self._keyring.delete_password(self._service(), key)
             except Exception:
                 pass
         data = self._load()

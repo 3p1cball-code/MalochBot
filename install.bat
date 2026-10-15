@@ -32,8 +32,9 @@ if errorlevel 1 (
   echo Fuer LinkedIn/Indeed siehe requirements-sources.txt.
 )
 
-echo Initialisiere Datenbank ...
-python -c "from app import db; db.init_db(); print('OK')"
+echo Initialisiere Konten-Datenbank ...
+python -c "from app import auth; auth.init_accounts_db(); print('OK - Konten-Datenbank bereit')"
+echo   Konten werden beim ersten Login/Registrieren angelegt; Daten je Benutzer getrennt.
 
 echo.
 echo Richte opencode-Websuche ein (Brave-Suche + Fetch) ...

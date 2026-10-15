@@ -15,6 +15,17 @@ function mbIsMobile() {
   return window.matchMedia("(max-width: 760px)").matches;
 }
 
+/* Abgelaufene Sitzung: alle API-Antworten mit 401 zur Anmeldung umleiten. */
+(function () {
+  const orig = window.fetch.bind(window);
+  window.fetch = function (input, init) {
+    return orig(input, init).then(function (res) {
+      if (res && res.status === 401) { window.location.href = "/login"; }
+      return res;
+    });
+  };
+})();
+
 /* Aktiven Tab in der mobilen, horizontal scrollbaren Leiste sichtbar machen. */
 (function () {
   const active = document.querySelector("header.nav .navlinks .active");

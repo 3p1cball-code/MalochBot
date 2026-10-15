@@ -39,7 +39,9 @@ mühsame Routine der Jobsuche ab.
 MalochBot ist eine klassische Server-Anwendung mit serverseitig gerenderten Templates.
 
 - **Backend:** Python 3.10+ mit FastAPI und Uvicorn.
-- **Datenbank:** SQLite (eine Datei, keine externe Datenbank nötig).
+- **Datenbank:** SQLite. Global liegt nur die Konten-Datenbank (`accounts.sqlite3`);
+  die fachlichen Daten jedes Benutzers liegen in einer eigenen `malochbot.sqlite3`
+  unter `users/<slug>/` (keine externe Datenbank nötig).
 - **Frontend:** Jinja2-Templates sowie handgeschriebenes CSS und JavaScript. Kein
   Build-Schritt, keine externen CDNs — dadurch offline- und servertauglich.
 - **Analyse:** Die opencode-CLI wird als Unterprozess aufgerufen; Ausgaben werden
@@ -50,6 +52,9 @@ MalochBot ist eine klassische Server-Anwendung mit serverseitig gerenderten Temp
 Kernmodule unter `app/`:
 
 - `main.py` — FastAPI-App, Routen, JSON-API, SSE-Stream.
+- `auth.py` — Benutzerverwaltung: Registrierung, Login, Sitzungen (scrypt-Hashes),
+  Aktivierung des Benutzerkontexts und Migration des Altbestands. CLI:
+  `python -m app.auth`.
 - `db.py` — SQLite-Schema, Migrationen, Zugriffshelfer.
 - `secrets.py` — Secret-Store (Keyring oder verschlüsselte Datei).
 - `logbus.py` — Live-Logs und Persistenz.
@@ -65,7 +70,26 @@ Kernmodule unter `app/`:
 
 ## 4. Datenmodell
 
-Alle fachlichen Daten liegen in SQLite-Tabellen:
+**Zwei Ebenen.** Ganz oben steht der Benutzer. In der globalen Konten-Datenbank
+`accounts.sqlite3` liegen nur `users` (Name, scrypt-Passworthash, Ordnerzuordnung) und
+`sessions` (nur der SHA-256-Hash des Cookie-Tokens). Auf dieser Ebene folgt je Benutzer
+die unveränderte bisherige Struktur in einem eigenen Ordner `users/<slug>/`:
+
+```
+data/
+  accounts.sqlite3          # Benutzer + Sitzungen (global)
+  users/<slug>/
+    malochbot.sqlite3       # alle fachlichen Daten des Benutzers
+    documents/  generated/  logs/
+    secrets.enc  key.bin    # Geheimnisse des Benutzers
+```
+
+Der aktive Benutzer kommt aus einem `ContextVar`; sämtliche Pfade (`config.DB_PATH`,
+`config.UPLOAD_DIR`, `config.SECRET_FILE`, …) lösen sich darüber dynamisch auf. Ein
+Hintergrundlauf übernimmt den Kontext in seinen Thread, sodass die Analyse im richtigen
+Benutzerordner arbeitet.
+
+Alle fachlichen Daten liegen je Benutzer in SQLite-Tabellen:
 
 - `jobs` — jede gefundene Stelle mit Firma, Titel, Ort, Remote, Links, Fit-Score,
   Begründung, Beschreibung, Status und Anschreiben-Pfad.
@@ -218,9 +242,14 @@ hervorgehobene Download-Button. Die vollständigen Protokolle bleiben im Reiter 
 ## 9. Sicherheit und Geheimnisse
 
 - Kein Geheimnis im Repository; `.gitignore` schließt den Datenordner aus.
-- Zugangsdaten liegen bevorzugt im **Betriebssystem-Keyring**. Ist keiner verfügbar
-  (etwa auf einem Server ohne Desktop), greift eine mit **Fernet verschlüsselte Datei**;
-  der Schlüssel liegt mit Dateirechten 0600 daneben.
+- **Passwörter** werden mit **scrypt** (stdlib) und zufälligem Salt gehasht, niemals im
+  Klartext gespeichert. Sitzungen sind undurchsichtige Zufallstoken; in der Datenbank
+  liegt nur deren SHA-256-Hash. Das Cookie ist `HttpOnly` und `SameSite=Lax` und läuft
+  nach 30 Tagen ab.
+- Zugangsdaten liegen bevorzugt im **Betriebssystem-Keyring** (je Benutzer ein eigener
+  Dienstname, damit sich Benutzer nicht überschreiben). Ist keiner verfügbar (etwa auf
+  einem Server ohne Desktop), greift eine mit **Fernet verschlüsselte Datei** je
+  Benutzerordner; der Schlüssel liegt mit Dateirechten 0600 daneben.
 - Mailzugriff ist ausschließlich **IMAP read-only** und inkrementell.
 - Kein Telemetrie-Versand. Der Code ist vollständig einsehbar.
 
@@ -240,6 +269,18 @@ Für den Dauerbetrieb gibt es systemd-Vorlagen (systemweit oder als Benutzerdien
 Linger). Der Dienst bindet wahlweise nur lokal oder im Netz; für den Zugriff von außen
 empfiehlt sich ein privates Netz wie Tailscale. Die Datenbank und die Unterlagen lassen
 sich durch Kopieren des Datenordners migrieren.
+
+**Benutzerverwaltung.** Beim ersten Start legt die Anwendung die Konten-Datenbank an;
+Konten entstehen über die Oberfläche (**Registrieren**) oder per CLI. Für den Umzug eines
+bestehenden, bislang benutzerlosen Bestands (Wurzel-`malochbot.sqlite3`, `documents/`,
+`generated/`, `secrets.enc`, `key.bin`, `mc_context_*.json`) in einen Benutzerordner:
+
+```bash
+MALOCHBOT_PW='…' python -m app.auth add-user <name>   # Konto anlegen
+python -m app.auth migrate <name>                     # Altbestand verschieben (Server gestoppt)
+python -m app.auth passwd <name>                      # Passwort ändern
+python -m app.auth list-users
+```
 
 ## 11. Logging und Fehlerbehandlung
 

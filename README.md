@@ -41,9 +41,13 @@ decisions that actually matter: which job, which cover letter, which interview.
   position you applied to (date, company, role, location, status, response, link) as a styled PDF –
   a ready proof of effort for the employment agency. A from/to month range narrows the list down
   (the summary stays complete and is labelled as such).
+- **Accounts** – sign in / register. Several people can use one server, each with their
+  own settings, jobs and documents. Passwords are hashed with scrypt; sessions are opaque
+  tokens. Existing single-user data can be migrated into an account.
 - **Two themes** – light and dark (toggle top right), minimal and calm.
 - **Help built in** – "About & Donate" explains the project goal, how to use it and security.
-- **Secure** – credentials in the OS keyring, no secrets in the repository, no telemetry.
+- **Secure** – passwords hashed (scrypt), credentials in the OS keyring (per user), no
+  secrets in the repository, no telemetry.
 
 ## Documentation
 
@@ -143,6 +147,25 @@ For permanent operation (e.g. on a home server) set `MALOCHBOT_HOST=0.0.0.0` so 
 is reachable on the network. A systemd unit lives at `deploy/malochbot.service` (user-scoped,
 `systemctl --user`) and `deploy/malochbot-system.service` (system-wide).
 
+## Accounts
+
+MalochBot has a login. Create an account in the UI (**Register**) or via the CLI, then sign
+in. Each account keeps its **own** settings, jobs, documents and secrets; one server can host
+several people side by side.
+
+```bash
+python -m app.auth add-user <name>     # create an account (prompts for a password)
+python -m app.auth passwd <name>       # change a password
+python -m app.auth list-users
+# Move an existing (single-user) install into an account — stop the server first:
+python -m app.auth migrate <name>      # moves the root DB/docs/secrets into users/<slug>/
+```
+
+`MALOCHBOT_PW` can supply the password non-interactively. Per-user data lives in
+`data/users/<slug>/` (own `malochbot.sqlite3`, `documents/`, `generated/`, `secrets.enc`);
+`data/accounts.sqlite3` holds only accounts and sessions. A session cookie lasts 30 days;
+**Sign out** is in the top bar.
+
 ## Requirements
 
 - Python 3.10+
@@ -162,8 +185,9 @@ is reachable on the network. A systemd unit lives at `deploy/malochbot.service` 
 MalochBot/
   app/
     main.py          FastAPI app, routes, SSE log stream
+    auth.py          Accounts, login/sessions, per-user context, data migration
     db.py            SQLite schema and access (all job data)
-    secrets.py       Secret store (keyring / encrypted file)
+    secrets.py       Secret store (keyring / encrypted file, per user)
     logbus.py        Live logs + persistence
     opencode_adapter.py  Calls the opencode CLI
     providers.py     Mail provider presets
@@ -174,7 +198,9 @@ MalochBot/
     templates/       UI
     templates/export/ PDF layouts (report, cover letter, document)
     static/          CSS/JS
-  data/              Runtime data (DB, uploads, logs) – not in the repo
+  data/              Runtime data – not in the repo
+    accounts.sqlite3   accounts + sessions (global)
+    users/<slug>/      per-user DB, documents, generated, secrets
 ```
 
 ## Security

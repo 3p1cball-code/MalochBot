@@ -6,6 +6,7 @@ import email
 import sys
 from email.header import decode_header, make_header
 
+from app import auth
 from app.engines import tracking
 
 
@@ -29,6 +30,7 @@ def body_of(msg):
 
 
 def main():
+    auth.activate()
     term = (sys.argv[1] if len(sys.argv) > 1 else "").lower()
     since = "01-Sep-2026"
     check_body = "--body" in sys.argv

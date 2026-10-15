@@ -9,10 +9,11 @@ Aufruf:  PYTHONPATH=. .venv/bin/python tools/check_dupes.py
 import sys
 from collections import defaultdict
 
-from app import db
+from app import auth, db
 
 
 def main() -> int:
+    auth.activate()
     db.init_db()
     rows = db.query("SELECT id, company, title, url, found_at, status FROM jobs ORDER BY id")
 

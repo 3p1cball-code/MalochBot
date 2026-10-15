@@ -22,7 +22,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app import db  # noqa: E402
+from app import auth, db  # noqa: E402
 from app.engines import urlfix  # noqa: E402
 
 
@@ -42,6 +42,7 @@ def main() -> int:
             return 2
         overrides[int(jid)] = url.strip()
 
+    auth.activate()
     db.init_db()
     rows = db.query("SELECT id, company, title, url FROM jobs")
     changed = 0

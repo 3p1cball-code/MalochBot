@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="{{ lang }}" data-theme="hell">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ t('auth.login_title') if mode == 'login' else t('auth.register_title') }} · {{ app_name }}</title>
+  <link rel="stylesheet" href="/static/app.css?v={{ build_id }}">
+  <link rel="icon" href="/static/logo.svg" type="image/svg+xml">
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("mb-theme");
+        if (t !== "hell" && t !== "dunkel") t = "hell";
+        document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <img src="/static/logo.svg" alt="">
+        <span class="name">{{ app_name }}</span>
+      </div>
+      <p class="auth-tagline">{{ t('auth.tagline') }}</p>
+      <h1>{{ t('auth.login_title') if mode == 'login' else t('auth.register_title') }}</h1>
+      {% if error %}<div class="auth-error">{{ error }}</div>{% endif %}
+      <form method="post" action="{{ '/login' if mode == 'login' else '/register' }}">
+        {% if mode == 'login' %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+        <div class="auth-field">
+          <label for="username">{{ t('auth.username') }}</label>
+          <input id="username" name="username" value="{{ username }}" autocomplete="username"
+                 autocapitalize="none" autocorrect="off" autofocus required>
+        </div>
+        <div class="auth-field">
+          <label for="password">{{ t('auth.password') }}</label>
+          <input id="password" name="password" type="password"
+                 autocomplete="{{ 'current-password' if mode == 'login' else 'new-password' }}"
+                 {% if mode == 'register' %}minlength="6"{% endif %} required>
+        </div>
+        {% if mode == 'register' %}
+        <div class="auth-field">
+          <label for="password2">{{ t('auth.password_repeat') }}</label>
+          <input id="password2" name="password2" type="password" autocomplete="new-password"
+                 minlength="6" required>
+        </div>
+        {% endif %}
+        <button class="btn btn-primary" type="submit">
+          {{ t('auth.login_btn') if mode == 'login' else t('auth.register_btn') }}
+        </button>
+      </form>
+      {% if mode == 'login' %}
+      <p class="auth-alt">{{ t('auth.no_account') }} <a href="/register">{{ t('auth.to_register') }}</a></p>
+      {% else %}
+      <p class="auth-alt">{{ t('auth.have_account') }} <a href="/login">{{ t('auth.to_login') }}</a></p>
+      {% endif %}
+      <p class="auth-foot">{{ app_name }} v{{ version }}</p>
+    </div>
+  </div>
+</body>
+</html>

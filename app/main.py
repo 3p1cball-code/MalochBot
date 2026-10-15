@@ -1,4 +1,5 @@
 import asyncio
+import contextvars
 import hashlib
 import json
 import os
@@ -8,6 +9,7 @@ import shutil
 import signal
 import threading
 import time
+from urllib.parse import quote
 
 from fastapi import FastAPI, Request, UploadFile, File, Form
 from fastapi.responses import (
@@ -16,7 +18,7 @@ from fastapi.responses import (
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import config, db, logbus, providers, secrets, i18n
+from . import config, db, logbus, providers, secrets, i18n, auth
 from .engines import search as search_engine
 from .engines import tracking as tracking_engine
 from .engines import documents as documents_engine
@@ -26,7 +28,7 @@ from . import import_legacy
 from . import opencode_adapter
 
 config.ensure_dirs()
-db.init_db()
+auth.init_accounts_db()
 
 app = FastAPI(title=config.APP_NAME, version=config.VERSION)
 
@@ -39,6 +41,33 @@ async def _fresh_html(request: Request, call_next):
     if not request.url.path.startswith("/static"):
         response.headers.setdefault("Cache-Control", "no-store")
     return response
+
+
+# Oeffentlich erreichbar ohne Anmeldung.
+_PUBLIC_PATHS = {"/login", "/register", "/api/health"}
+
+
+@app.middleware("http")
+async def _auth(request: Request, call_next):
+    """Loest die Sitzung auf, setzt den Benutzerkontext und schuetzt alle Seiten.
+
+    Der aktive Benutzer wandert in ein ContextVar; alle Datenpfade (Datenbank,
+    Unterlagen, Geheimnisse) loesen sich darueber pro Benutzer auf.
+    """
+    token = request.cookies.get(auth.SESSION_COOKIE)
+    user = auth.user_for_token(token) if token else None
+    if user:
+        config.set_current_user({
+            "id": user["id"], "username": user["username"],
+            "dir": str(config.user_home(user["data_dir"]))})
+        auth.ensure_user_ready(user)
+    path = request.url.path
+    public = path in _PUBLIC_PATHS or path.startswith("/static")
+    if not user and not public:
+        if path.startswith("/api/"):
+            return JSONResponse({"error": "auth", "login": "/login"}, status_code=401)
+        return RedirectResponse("/login?next=" + quote(path), status_code=303)
+    return await call_next(request)
 
 
 app.mount("/static", StaticFiles(directory=str(config.BASE_DIR / "app" / "static")), name="static")
@@ -86,6 +115,7 @@ def _ctx(request: Request, **kwargs):
         "home_city": db.get_setting("home_city", "Berlin"),
         "build_id": BUILD_ID,
         "setup_done": db.get_setting("setup_done", "0") == "1",
+        "current_user": (config.current_user() or {}).get("username", ""),
     }
     base.update(kwargs)
     return base
@@ -94,6 +124,9 @@ def _ctx(request: Request, **kwargs):
 def start_background(kind: str, func) -> int:
     model = db.get_setting("model", config.DEFAULT_MODEL)
     run_id = logbus.start(kind, model)
+    # Benutzerkontext in den Hintergrund-Thread uebernehmen, damit der Lauf
+    # in der Datenbank/den Unterlagen des richtigen Benutzers arbeitet.
+    ctx = contextvars.copy_context()
 
     def worker():
         try:
@@ -103,8 +136,95 @@ def start_background(kind: str, func) -> int:
             logbus.log(run_id, "error", "Fehler: %s" % exc)
             logbus.finish(run_id, "fehler", str(exc))
 
-    threading.Thread(target=worker, daemon=True).start()
+    threading.Thread(target=ctx.run, args=(worker,), daemon=True).start()
     return run_id
+
+
+# ---------------------------------------------------------------- Anmeldung
+def _safe_next(value: str) -> str:
+    value = (value or "/").strip()
+    if not value.startswith("/") or value.startswith("//"):
+        return "/"
+    return value
+
+
+def _preferred_lang(request: Request) -> str:
+    header = (request.headers.get("accept-language") or "").lower()
+    return "en" if header.startswith("en") else "de"
+
+
+def _auth_page(request: Request, mode: str, error: str = "", next_url: str = "/",
+               username: str = ""):
+    lang = _preferred_lang(request)
+    return templates.TemplateResponse(request, "auth.html", {
+        "app_name": config.APP_NAME, "version": config.VERSION,
+        "build_id": BUILD_ID, "lang": lang, "mode": mode,
+        "error": error, "next": next_url, "username": username,
+        "allow_register": True,
+        "t": lambda key: i18n.tr(lang, key),
+    })
+
+
+@app.get("/login", response_class=HTMLResponse)
+def login_form(request: Request, next: str = "/"):
+    return _auth_page(request, "login", next_url=_safe_next(next))
+
+
+@app.post("/login")
+async def login_submit(request: Request):
+    form = await request.form()
+    username = str(form.get("username", "")).strip()
+    password = str(form.get("password", ""))
+    next_url = _safe_next(str(form.get("next", "/")))
+    user = auth.authenticate(username, password)
+    if not user:
+        return _auth_page(request, "login",
+                          error=i18n.tr(_preferred_lang(request), "auth.err_credentials"),
+                          next_url=next_url, username=username)
+    token = auth.create_session(user["id"])
+    response = RedirectResponse(next_url, status_code=303)
+    response.set_cookie(auth.SESSION_COOKIE, token, max_age=auth.SESSION_DAYS * 86400,
+                        httponly=True, samesite="lax", path="/")
+    return response
+
+
+@app.get("/register", response_class=HTMLResponse)
+def register_form(request: Request):
+    return _auth_page(request, "register")
+
+
+@app.post("/register")
+async def register_submit(request: Request):
+    form = await request.form()
+    username = str(form.get("username", "")).strip()
+    password = str(form.get("password", ""))
+    confirm = str(form.get("password2", ""))
+    lang = _preferred_lang(request)
+    if password != confirm:
+        return _auth_page(request, "register",
+                          error=i18n.tr(lang, "auth.err_mismatch"), username=username)
+    try:
+        uid = auth.create_user(username, password)
+    except ValueError as exc:
+        return _auth_page(request, "register", error=str(exc), username=username)
+    token = auth.create_session(uid)
+    response = RedirectResponse("/", status_code=303)
+    response.set_cookie(auth.SESSION_COOKIE, token, max_age=auth.SESSION_DAYS * 86400,
+                        httponly=True, samesite="lax", path="/")
+    return response
+
+
+@app.post("/logout")
+def logout_post(request: Request):
+    auth.destroy_session(request.cookies.get(auth.SESSION_COOKIE))
+    response = RedirectResponse("/login", status_code=303)
+    response.delete_cookie(auth.SESSION_COOKIE, path="/")
+    return response
+
+
+@app.get("/logout")
+def logout_get(request: Request):
+    return logout_post(request)
 
 
 # ---------------------------------------------------------------- Jobs (Startseite)
@@ -789,10 +909,15 @@ def shutdown():
 
 @app.get("/api/health")
 def health():
-    return JSONResponse({
+    user = config.current_user()
+    data = {
         "app": config.APP_NAME, "version": config.VERSION,
-        "build": BUILD_ID,
-        "db": str(config.DB_PATH), "opencode": opencode_adapter.available(),
-        "model": db.get_setting("model", config.DEFAULT_MODEL),
+        "build": BUILD_ID, "opencode": opencode_adapter.available(),
         "secret_backend": secrets.store.backend(),
-    })
+        "auth": bool(user),
+    }
+    if user:
+        data["db"] = str(config.DB_PATH)
+        data["model"] = db.get_setting("model", config.DEFAULT_MODEL)
+        data["user"] = user.get("username", "")
+    return JSONResponse(data)

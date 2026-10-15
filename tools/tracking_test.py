@@ -11,12 +11,13 @@ import json
 import os
 import sys
 
-from app import config, db
+from app import auth, config, db
 from app.engines import tracking as t
 from app.engines import tracking_mail as tm
 
 
 def main():
+    auth.activate()
     ap = argparse.ArgumentParser()
     ap.add_argument("--since", default="2026-07-01")
     ap.add_argument("--model", default="")

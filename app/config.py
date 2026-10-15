@@ -1,8 +1,9 @@
+import contextvars
 import os
 from pathlib import Path
 
 APP_NAME = "MalochBot"
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 TAGLINE = "Die Maloche der Jobsuche nimmt dir MalochBot ab."
 DONATE_EMAIL = "alexander.riedel@eyedea3d.com"
 DONATE_PAYPAL = "https://www.paypal.com/donate?business=alexander.riedel%40eyedea3d.com&item_name=MalochBot"
@@ -15,13 +16,59 @@ PDF_CREDIT = "Erstellt mit MalochBot"
 DEFAULT_MODEL = os.environ.get("TRACKER_MODEL", "deepseek/deepseek-flash")
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = Path(os.environ.get("MALOCHBOT_DATA", str(BASE_DIR / "data")))
-DB_PATH = DATA_DIR / "malochbot.sqlite3"
-LOG_DIR = DATA_DIR / "logs"
-UPLOAD_DIR = DATA_DIR / "documents"
-GENERATED_DIR = DATA_DIR / "generated"
-SECRET_FILE = DATA_DIR / "secrets.enc"
-KEY_FILE = DATA_DIR / "key.bin"
+
+# --- Benutzerverwaltung -----------------------------------------------------
+# Die Datenbank ist in zwei Ebenen geteilt:
+#   * global: Konten + Sitzungen liegen in der Account-Datenbank (accounts.sqlite3).
+#   * je Benutzer: der komplette bisherige Bestand (Jobs, Einstellungen,
+#     Unterlagen, Geheimnisse) liegt in einem eigenen Ordner unter users/<slug>/
+#     mit eigener malochbot.sqlite3 - jeweils identische Struktur wie zuvor.
+# Der aktive Benutzer kommt aus einem ContextVar; ohne Kontext zeigen die Pfade
+# auf das Wurzelverzeichnis (nur fuer Aufbau/Verwaltung und die Account-DB).
+ROOT_DATA_DIR = Path(os.environ.get("MALOCHBOT_DATA", str(BASE_DIR / "data")))
+USERS_DIR = ROOT_DATA_DIR / "users"
+ACCOUNTS_DB = ROOT_DATA_DIR / "accounts.sqlite3"
+
+_user_var: contextvars.ContextVar = contextvars.ContextVar("malochbot_user", default=None)
+
+# Pfade relativ zum Benutzerordner (Namen bleiben kompatibel zum bisherigen Code).
+_SCOPED = {
+    "DATA_DIR": "",
+    "DB_PATH": "malochbot.sqlite3",
+    "LOG_DIR": "logs",
+    "UPLOAD_DIR": "documents",
+    "GENERATED_DIR": "generated",
+    "SECRET_FILE": "secrets.enc",
+    "KEY_FILE": "key.bin",
+}
+
+
+def set_current_user(user: dict) -> None:
+    """Setzt den aktiven Benutzer fuer den aktuellen Kontext (Thread/Task)."""
+    _user_var.set(user or None)
+
+
+def current_user():
+    return _user_var.get()
+
+
+def current_user_dir() -> Path:
+    user = _user_var.get()
+    if user and user.get("dir"):
+        return Path(user["dir"])
+    return ROOT_DATA_DIR
+
+
+def user_home(slug: str) -> Path:
+    return USERS_DIR / slug
+
+
+def __getattr__(name: str):
+    """Loest die benutzerbezogenen Pfade dynamisch aus dem aktuellen Kontext auf."""
+    if name in _SCOPED:
+        return current_user_dir() / _SCOPED[name]
+    raise AttributeError("Modul %r hat kein Attribut %r" % (__name__, name))
+
 
 HOST = os.environ.get("MALOCHBOT_HOST", "127.0.0.1")
 PORT = int(os.environ.get("MALOCHBOT_PORT", "8765"))
@@ -106,5 +153,11 @@ def doc_labels(lang: str) -> dict:
 
 
 def ensure_dirs() -> None:
-    for directory in (DATA_DIR, LOG_DIR, UPLOAD_DIR, GENERATED_DIR):
-        directory.mkdir(parents=True, exist_ok=True)
+    """Legt Wurzel- und Benutzerordner an (je nach aktivem Kontext)."""
+    ROOT_DATA_DIR.mkdir(parents=True, exist_ok=True)
+    USERS_DIR.mkdir(parents=True, exist_ok=True)
+    user = _user_var.get()
+    if user:
+        base = current_user_dir()
+        for directory in (base, base / "logs", base / "documents", base / "generated"):
+            directory.mkdir(parents=True, exist_ok=True)

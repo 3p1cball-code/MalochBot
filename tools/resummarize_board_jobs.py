@@ -13,11 +13,12 @@ Aufruf:  PYTHONPATH=. .venv/bin/python tools/resummarize_board_jobs.py [mindestl
 """
 import sys
 
-from app import db, logbus
+from app import auth, db, logbus
 from app.engines import search
 
 
 def main() -> int:
+    auth.activate()
     db.init_db()
     min_len = int(sys.argv[1]) if len(sys.argv) > 1 else 1200
     rows = db.query(

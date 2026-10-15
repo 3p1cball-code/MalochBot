@@ -47,7 +47,8 @@ else
 fi
 
 echo "Initialisiere Datenbank ..."
-python -c "from app import db; db.init_db(); print('OK:', db.get_setting('model'))"
+python -c "from app import auth; auth.init_accounts_db(); print('OK: Konten-Datenbank bereit')"
+echo "  (Konten werden beim ersten Login/Registrieren angelegt; Daten je Benutzer getrennt.)"
 
 echo
 echo "Richte opencode-Websuche ein (Brave-Suche + Fetch) ..."
