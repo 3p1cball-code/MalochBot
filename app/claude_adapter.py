@@ -64,7 +64,7 @@ def run(prompt: str, model: str = "", cwd: str = "", attach=None, run_id=None,
     try:
         proc = subprocess.Popen(
             cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-            text=True, bufsize=1, cwd=workdir,
+            text=True, encoding="utf-8", errors="replace", bufsize=1, cwd=workdir,
         )
     except FileNotFoundError:
         raise RuntimeError("claude (Claude Code) wurde nicht gefunden. Bitte installieren "

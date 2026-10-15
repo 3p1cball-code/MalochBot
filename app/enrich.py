@@ -49,7 +49,8 @@ def _ranking_text() -> str:
     for path in files:
         try:
             out = subprocess.run(["pdftotext", "-layout", path, "-"],
-                                 capture_output=True, text=True, timeout=60).stdout
+                                 capture_output=True, text=True, encoding="utf-8",
+                                 errors="replace", timeout=60).stdout
             parts.append("\n\n=== %s ===\n%s" % (os.path.basename(os.path.dirname(path)), out))
         except Exception:
             continue

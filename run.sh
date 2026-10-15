@@ -3,6 +3,9 @@
 set -e
 cd "$(dirname "$0")"
 
+# UTF-8-Modus erzwingen (Plattform-parität zu run.bat/Windows).
+export PYTHONUTF8=1
+
 if [ -d ".venv" ]; then
   # shellcheck disable=SC1091
   source .venv/bin/activate

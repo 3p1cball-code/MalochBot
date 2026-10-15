@@ -3,6 +3,11 @@ REM MalochBot - Installer (Windows)
 setlocal
 cd /d "%~dp0"
 
+REM UTF-8 erzwingen (Windows-Konsole nutzt sonst cp850/cp1252 -> kaputte Umlaute).
+chcp 65001 >nul
+set PYTHONUTF8=1
+set PYTHONIOENCODING=utf-8
+
 echo == MalochBot Installer ==
 
 where py >nul 2>nul && (set PY=py) || (set PY=python)

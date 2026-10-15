@@ -8,7 +8,7 @@ cfg_path = os.environ.get("OPENCODE_CONFIG") or os.path.expanduser("~/.config/op
 key = (sys.argv[1] if len(sys.argv) > 1 else os.environ.get("BRAVE_API_KEY", "")) or ""
 
 os.makedirs(os.path.dirname(cfg_path), exist_ok=True)
-cfg = json.load(open(cfg_path)) if os.path.exists(cfg_path) else {}
+cfg = json.load(open(cfg_path, encoding="utf-8")) if os.path.exists(cfg_path) else {}
 mcp = cfg.setdefault("mcp", {})
 mcp["fetch"] = {"type": "local", "command": ["uvx", "mcp-server-fetch"], "enabled": True}
 if key:
@@ -18,7 +18,8 @@ if key:
         "enabled": True,
         "environment": {"BRAVE_API_KEY": key},
     }
-json.dump(cfg, open(cfg_path, "w"), indent=2)
+with open(cfg_path, "w", encoding="utf-8") as fh:
+    json.dump(cfg, fh, indent=2, ensure_ascii=False)
 try:
     os.chmod(cfg_path, 0o600)
 except OSError:

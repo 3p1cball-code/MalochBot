@@ -19,7 +19,8 @@ def list_models():
     """Alle aktuell auf dem System in opencode verfuegbaren Modelle (provider/model)."""
     exe = shutil.which("opencode") or "opencode"
     try:
-        proc = subprocess.run([exe, "models"], capture_output=True, text=True, timeout=30)
+        proc = subprocess.run([exe, "models"], capture_output=True, text=True,
+                              encoding="utf-8", errors="replace", timeout=30)
         models = sorted({line.strip() for line in (proc.stdout or "").splitlines()
                          if "/" in line and " " not in line.strip()})
     except Exception:
@@ -43,7 +44,7 @@ def run(prompt: str, model: str = "", cwd: str = "", attach=None, run_id=None,
     try:
         proc = subprocess.Popen(
             cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-            text=True, bufsize=1, cwd=workdir,
+            text=True, encoding="utf-8", errors="replace", bufsize=1, cwd=workdir,
         )
     except FileNotFoundError:
         raise RuntimeError("opencode wurde nicht gefunden. Bitte installieren (siehe installer).")

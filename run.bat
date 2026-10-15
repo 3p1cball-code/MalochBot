@@ -3,6 +3,11 @@ REM MalochBot - Start (Windows). Beendet zuerst eine laufende Instanz auf dem Po
 setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
+REM UTF-8 erzwingen: Umlaute in Konsole und Dateien/Subprozessen (Windows nutzt sonst cp1252).
+chcp 65001 >nul
+set PYTHONUTF8=1
+set PYTHONIOENCODING=utf-8
+
 if exist ".venv\Scripts\activate.bat" call .venv\Scripts\activate.bat
 
 set HOST=%MALOCHBOT_HOST%
